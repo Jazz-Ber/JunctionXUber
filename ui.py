@@ -678,6 +678,7 @@ class App(customtkinter.CTk):
             if coordinates:
                 self.map_widget.delete_all_marker()
                 self.map_widget.delete_all_path()
+                self.current_route_label.configure(text="")
                 lat, lon = coordinates
                 self.current_location_coords = (lat, lon)
                 self.current_location_marker = self.map_widget.set_position(lat, lon, marker=True)

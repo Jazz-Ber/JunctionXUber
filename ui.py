@@ -43,6 +43,8 @@ class App(customtkinter.CTk):
     APP_NAME = "TkinterMapView with CustomTkinter"
     WIDTH = 800
     HEIGHT = 500
+    current_location_marker = None
+    current_location_coords = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -114,11 +116,13 @@ class App(customtkinter.CTk):
         delft_coords = geocode_address("Delft")
         if delft_coords:
             lat, lon = delft_coords
-            self.map_widget.set_position(lat, lon, marker=True)
+            self.current_location_coords = (lat, lon)
+            self.current_location_marker = self.map_widget.set_position(lat, lon, marker=True)
             self.map_widget.set_zoom(16)
         else:
             # Fallback to default coordinates for Delft
-            self.map_widget.set_position(52.0116, 4.3571, marker=True)
+            self.current_location_coords = (52.0116, 4.3571)
+            self.current_location_marker = self.map_widget.set_position(52.0116, 4.3571, marker=True)
             self.map_widget.set_zoom(16)
         
         self.appearance_mode_optionemenu.set("Dark")
@@ -126,6 +130,7 @@ class App(customtkinter.CTk):
 
     def search_event(self, event=None):
         address = self.entry.get().strip()
+        self.entry.delete(0, "end")
         self.search_event_with_address(address)
 
     def search_event_with_address(self, address):
@@ -134,8 +139,10 @@ class App(customtkinter.CTk):
             coordinates = geocode_address(address)
             if coordinates:
                 self.map_widget.delete_all_marker()
+                self.map_widget.delete_all_path()
                 lat, lon = coordinates
-                self.map_widget.set_position(lat, lon, marker=True)
+                self.current_location_coords = (lat, lon)
+                self.current_location_marker = self.map_widget.set_position(lat, lon, marker=True)
                 self.map_widget.set_zoom(15)
                 print(f"Found address '{address}' at coordinates: {lat}, {lon}")
             else:
@@ -145,11 +152,47 @@ class App(customtkinter.CTk):
 
     def find_busy_place(self):
         busy_address = controller.busy_address()
-        self.search_event_with_address(busy_address)
+        if busy_address:
+            coordinates = geocode_address(busy_address)
+            if coordinates:
+                self.map_widget.delete_all_marker()
+                if self.current_location_coords:
+                    self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+                self.map_widget.delete_all_path()
+
+                lat, lon = coordinates
+                busy_area_marker = self.map_widget.set_position(lat, lon, marker=True)
+                self.map_widget.set_zoom(15)
+                # Use coordinate tuples instead of marker objects for set_path
+                if self.current_location_coords:
+                    busy_path = self.map_widget.set_path([self.current_location_coords, (lat, lon)])
+                print(f"Found address '{busy_address}' at coordinates: {lat}, {lon}")
+            else:
+                print(f"Could not find coordinates for address: {busy_address}")
+        else:
+            print("Please enter an address to search")
 
     def find_idle_place(self):
         idle_address = controller.idle_address()
-        self.search_event_with_address(idle_address)
+        if idle_address:
+            coordinates = geocode_address(idle_address)
+            if coordinates:
+                self.map_widget.delete_all_marker()
+                if self.current_location_coords:
+                    self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+                self.map_widget.delete_all_path()
+                
+                lat, lon = coordinates
+                idle_area_marker = self.map_widget.set_position(lat, lon, marker=True)
+                self.map_widget.set_zoom(15)
+                # Use coordinate tuples instead of marker objects for set_path
+                if self.current_location_coords:
+                    idle_path = self.map_widget.set_path([self.current_location_coords, (lat, lon)])
+                print(f"Found address '{idle_address}' at coordinates: {lat}, {lon}")
+            else:
+                print(f"Could not find coordinates for address: {idle_address}")
+        else:
+            print("Please enter an address to search")
 
     def change_appearance_mode(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)

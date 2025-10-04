@@ -1,6 +1,8 @@
 # self.py
 import geopy.distance
 import math
+from TypeChooser import get_venue_type
+from Services.CSVService import Id_To_Name
 
 class Controller:
     def __init__(self, client):
@@ -10,10 +12,17 @@ class Controller:
 
 
     def getLocations(self, current_coords):
+        types = ""
+        for i in get_venue_type():
+            types += i
+            types += ","
+        types = types.rstrip(types[-1])
+
         params = {
             "ll": f"{round(current_coords[0], 4)},{round(current_coords[1], 4)}",  # lat,lng # Should be coordinates that map is currently on.
-            "radius": 2000,
-            "limit": 10
+            "radius": 10000,
+            "limit": 50,
+            "categories": types
         }
 
         response = self.client.getNearbyLocations(params)
@@ -21,7 +30,21 @@ class Controller:
         result_addresses = []
 
         for i in result:
-            result_addresses.append(i.get("location", {}).get("formatted_address", ""))
+            distance = i.get("distance", None)
+            if not distance:
+                continue
+
+            location_data = i.get("location", None)
+            if not location_data:
+                continue
+
+            address = location_data.get("address", None)
+            postcode = location_data.get("postcode", None)
+            city = location_data.get("locality", None)
+            if not address or not postcode or not city:
+                continue
+
+            result_addresses.append(f"{address}, {postcode} {city}")
             #idle_location = result[1].get("location", {})
             #self.set_idle_address(idle_location.get("formatted_address", self.get_idle_address(None)))
 

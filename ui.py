@@ -2,6 +2,7 @@ import customtkinter
 from tkintermapview import TkinterMapView
 import requests
 import json
+import math
 from controller import Controller
 
 controller = Controller()
@@ -80,7 +81,6 @@ def get_driving_route_with_osrm(start_coords, end_coords):
             'overview': 'full',
             'geometries': 'geojson'
         }
-        
         response = requests.get(url, params=params, timeout=10)
         
         if response.status_code == 200:
@@ -88,24 +88,26 @@ def get_driving_route_with_osrm(start_coords, end_coords):
             if data.get('code') == 'Ok' and data.get('routes'):
                 # Extract coordinates from the route geometry
                 coordinates = data['routes'][0]['geometry']['coordinates']
+                distance = round(float(data['routes'][0]['legs'][0]['distance']) / 1000.0, 1)
+                duration = math.ceil(float(data['routes'][0]['legs'][0]['duration']) / 60.0)
                 # Convert from [lon, lat] to [lat, lon] format for tkintermapview
                 waypoints = [(coord[1], coord[0]) for coord in coordinates]
-                return waypoints
+                return waypoints, distance, duration
             else:
                 print(f"OSRM routing failed: {data}")
-                return [start_coords, end_coords]
+                return [start_coords, end_coords], None, None
         else:
             print(f"OSRM request failed with status code: {response.status_code}")
-            return [start_coords, end_coords]
+            return [start_coords, end_coords], None, None
             
     except Exception as e:
         print(f"Error getting OSRM route: {e}")
-        return [start_coords, end_coords]
+        return [start_coords, end_coords], None, None
 
 
 class App(customtkinter.CTk):
 
-    APP_NAME = "TkinterMapView with CustomTkinter"
+    APP_NAME = "Uber Driver Assitent"
     WIDTH = 800
     HEIGHT = 500
     current_location_marker = None
@@ -139,16 +141,19 @@ class App(customtkinter.CTk):
         self.frame_left.grid_rowconfigure(2, weight=1)
 
         self.button_1 = customtkinter.CTkButton(master=self.frame_left,
-                                                text="Find Busy Place",
+                                                text="Find Busy Place", font=("Inter", 15),
                                                 command=self.find_busy_place)
         self.button_1.grid(pady=(20, 0), padx=(20, 20), row=0, column=0)
 
         self.button_2 = customtkinter.CTkButton(master=self.frame_left,
-                                                text="Find Idle Place",
+                                                text="Find Idle Place", font=("Inter", 15),
                                                 command=self.find_idle_place)
-        self.button_2.grid(pady=(20, 0), padx=(20, 20), row=1, column=0)
+        self.button_2.grid(pady=(100, 0), padx=(20, 20), row=0, column=0)
 
-        self.appearance_mode_label = customtkinter.CTkLabel(self.frame_left, text="Appearance Mode:", anchor="w")
+        self.current_route_label = customtkinter.CTkLabel(self.frame_left, text="", font=("Inter", 18), anchor="w")
+        self.current_route_label.grid(row=1, column=0, padx=(20, 20), pady=(20, 0))
+
+        self.appearance_mode_label = customtkinter.CTkLabel(self.frame_left, text="Appearance Mode:", font=("Inter", 15), anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=(20, 20), pady=(20, 0))
         self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.frame_left, values=["Light", "Dark", "System"],
                                                                        command=self.change_appearance_mode)
@@ -166,12 +171,12 @@ class App(customtkinter.CTk):
         self.map_widget.grid(row=1, rowspan=1, column=0, columnspan=3, sticky="nswe", padx=(0, 0), pady=(0, 0))
 
         self.entry = customtkinter.CTkEntry(master=self.frame_right,
-                                            placeholder_text="type address")
+                                            placeholder_text="Type address...", font=("Inter", 12),)
         self.entry.grid(row=0, column=0, sticky="we", padx=(12, 0), pady=12)
         self.entry.bind("<Return>", self.search_event)
 
         self.button_5 = customtkinter.CTkButton(master=self.frame_right,
-                                                text="Search",
+                                                text="Search", font=("Inter", 15),
                                                 width=90,
                                                 command=self.search_event)
         self.button_5.grid(row=0, column=1, sticky="w", padx=(12, 0), pady=12)
@@ -234,7 +239,8 @@ class App(customtkinter.CTk):
                 
                 # Get actual driving route instead of straight line
                 if self.current_location_coords:
-                    route_waypoints = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
                     busy_path = self.map_widget.set_path(route_waypoints)
                     print(f"Generated driving route with {len(route_waypoints)} waypoints")
                 
@@ -260,7 +266,8 @@ class App(customtkinter.CTk):
                 
                 # Get actual driving route instead of straight line
                 if self.current_location_coords:
-                    route_waypoints = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
                     idle_path = self.map_widget.set_path(route_waypoints)
                     print(f"Generated driving route with {len(route_waypoints)} waypoints")
                 
@@ -282,7 +289,8 @@ class App(customtkinter.CTk):
 
         # Get actual driving route instead of straight line
         if self.current_location_coords:
-            route_waypoints = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
             busy_path = self.map_widget.set_path(route_waypoints)
             print(f"Generated driving route with {len(route_waypoints)} waypoints")
         

@@ -5,7 +5,7 @@ import json
 import math
 from controller import Controller
 
-controller = Controller()
+# controller = Controller()
 
 customtkinter.set_default_color_theme("blue")
 

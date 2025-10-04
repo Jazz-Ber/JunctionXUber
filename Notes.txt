@@ -71,3 +71,7 @@ During periods when drivers are not actively transporting passengers, the app wi
 - Integration with local event calendars
 - Weather-based location adjustments
 - Driver preference learning and customization
+
+Goal: Add to the Uber app to support the earners (drivers)
+
+Idea: Add a feature where during idle time in between rides, the app suggests busy areas to drive to, to increase likelihood of being close to next drive.

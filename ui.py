@@ -4,39 +4,9 @@ import requests
 import json
 import math
 from controller import Controller
+from process_logic import ProcessLogic
 
 customtkinter.set_default_color_theme("blue")
-
-
-def geocode_address(address):
-    """Geocode an address using Nominatim with proper User-Agent header"""
-    url = "https://nominatim.openstreetmap.org/search"
-    headers = {
-        'User-Agent': 'JunctionXUber/1.0 (Educational Project)'
-    }
-    params = {
-        'q': address,
-        'format': 'jsonv2',
-        'addressdetails': 1,
-        'limit': 1
-    }
-    
-    try:
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if data:
-                return float(data[0]['lat']), float(data[0]['lon'])
-            else:
-                print(f"No results found for address: {address}")
-                return None
-        else:
-            print(f"Geocoding failed with status code: {response.status_code}")
-            return None
-    except Exception as e:
-        print(f"Error geocoding address '{address}': {e}")
-        return None
-
 
 def get_driving_route(start_coords, end_coords):
     """Get driving route waypoints between two coordinates using OpenRouteService"""
@@ -110,6 +80,7 @@ class App(customtkinter.CTk):
     HEIGHT = 500
     current_location_marker = None
     current_location_coords = None
+    process_logic = ProcessLogic()
 
     def __init__(self, controller, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -184,7 +155,7 @@ class App(customtkinter.CTk):
 
         # Set default values
         # Use custom geocoding for default address
-        delft_coords = geocode_address("Delft")
+        delft_coords = self.process_logic.geocode_address("Delft")
         if delft_coords:
             lat, lon = delft_coords
             self.current_location_coords = (lat, lon)
@@ -210,7 +181,7 @@ class App(customtkinter.CTk):
     def search_event_with_address(self, address):
         if address:
             # Use our custom geocoding function
-            coordinates = geocode_address(address)
+            coordinates = self.process_logic.geocode_address(address)
             if coordinates:
                 self.map_widget.delete_all_marker()
                 self.map_widget.delete_all_path()
@@ -225,37 +196,33 @@ class App(customtkinter.CTk):
             print("Please enter an address to search")
 
     def find_busy_place(self):
-        self.controller.getLocations(self.current_location_coords)
-        busy_address = self.controller.get_busy_address()
+        locations = self.controller.getLocations(self.current_location_coords)
+        clusters = self.process_logic.cluster_maker(locations)
+        busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
         if busy_address:
-            coordinates = geocode_address(busy_address)
-            if coordinates:
-                self.map_widget.delete_all_marker()
-                if self.current_location_coords:
-                    self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
-                self.map_widget.delete_all_path()
+            self.map_widget.delete_all_marker()
+            if self.current_location_coords:
+                self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+            self.map_widget.delete_all_path()
 
-                lat, lon = coordinates
-                busy_area_marker = self.map_widget.set_position(lat, lon, marker=True)
-                self.map_widget.set_zoom(15)
-                
-                # Get actual driving route instead of straight line
-                if self.current_location_coords:
-                    route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
-                    self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
-                    busy_path = self.map_widget.set_path(route_waypoints)
-                    print(f"Generated driving route with {len(route_waypoints)} waypoints")
-                
-                print(f"Found address '{busy_address}' at coordinates: {lat}, {lon}")
-            else:
-                print(f"Could not find coordinates for address: {busy_address}")
+            lat, lon = busy_address
+            busy_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
+            self.map_widget.set_zoom(15)
+            
+            # Get actual driving route instead of straight line
+            if self.current_location_coords:
+                route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
+                busy_path = self.map_widget.set_path(route_waypoints)
+                print(f"Generated driving route with {len(route_waypoints)} waypoints")
+
         else:
             print("Please enter an address to search")
 
     def find_idle_place(self):
-        idle_address = self.controller.get_idle_address()
+        idle_address = self.controller.get_idle_address(None)
         if idle_address:
-            coordinates = geocode_address(idle_address)
+            coordinates = self.process_logic.geocode_address(idle_address)
             if coordinates:
                 self.map_widget.delete_all_marker()
                 if self.current_location_coords:
@@ -263,7 +230,7 @@ class App(customtkinter.CTk):
                 self.map_widget.delete_all_path()
                 
                 lat, lon = coordinates
-                idle_area_marker = self.map_widget.set_position(lat, lon, marker=True)
+                idle_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
                 self.map_widget.set_zoom(15)
                 
                 # Get actual driving route instead of straight line
@@ -287,7 +254,7 @@ class App(customtkinter.CTk):
         self.map_widget.delete_all_path()
 
         lat, lon = coords
-        new_area_marker = self.map_widget.set_marker(lat, lon)
+        new_area_marker = self.map_widget.set_marker(lat, lon, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
 
         # Get actual driving route instead of straight line
         if self.current_location_coords:

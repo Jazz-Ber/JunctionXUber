@@ -22,6 +22,7 @@ class Controller:
             "ll": f"{round(current_coords[0], 4)},{round(current_coords[1], 4)}",
             "radius": 10000,
             "limit": 50,
+            "open_now": True,
             "categories": types
         }
 

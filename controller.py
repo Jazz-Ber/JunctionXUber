@@ -6,8 +6,8 @@ from Services.CSVService import Id_To_Name
 
 class Controller:
     def __init__(self, client):
-        self.busy_address = "Den Haag"
-        self.idle_address = "Barendrecht"
+        self.busy_coords = (52.07515870380299, 4.3082185994332525)
+        self.idle_coords = (51.85096345959651, 4.543824271176097)
         self.client = client
 
 
@@ -19,7 +19,7 @@ class Controller:
         types = types.rstrip(types[-1])
 
         params = {
-            "ll": f"{round(current_coords[0], 4)},{round(current_coords[1], 4)}",  # lat,lng # Should be coordinates that map is currently on.
+            "ll": f"{round(current_coords[0], 4)},{round(current_coords[1], 4)}",
             "radius": 10000,
             "limit": 50,
             "categories": types
@@ -27,30 +27,18 @@ class Controller:
 
         response = self.client.getNearbyLocations(params)
         result = response.json().get("results", [])
-        result_addresses = []
+        result_coords = []
 
         for i in result:
-            distance = i.get("distance", None)
-            if not distance:
+            lat = i.get("latitude", None)
+            long = i.get("longitude", None)
+
+            if not lat or not long:
                 continue
 
-            location_data = i.get("location", None)
-            if not location_data:
-                continue
+            result_coords.append((lat, long))
 
-            address = location_data.get("address", None)
-            postcode = location_data.get("postcode", None)
-            city = location_data.get("locality", None)
-            if not address or not postcode or not city:
-                continue
-
-            result_addresses.append(f"{address}, {postcode} {city}")
-            #idle_location = result[1].get("location", {})
-            #self.set_idle_address(idle_location.get("formatted_address", self.get_idle_address(None)))
-
-        # Print for debugging
-        #print("Idle:", self.get_idle_address(None))
-        return result_addresses
+        return result_coords
 
     # Methods to update addresses
     def set_busy_address(self, addr):

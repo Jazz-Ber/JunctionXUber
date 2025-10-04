@@ -2,30 +2,38 @@ import geopy.distance
 from ui import geocode_address
 
 class ProcessLogic:
-    def distance_finder(address1, address2):
-        coords1 = geocode_address(address1)
-        coords2 = geocode_address(address2)
-
+    def __init__(self):
+        # Cache for geocoded addresses to avoid repeated API calls
+        self.geocoding_cache = {}
+    
+    def geocode_address_cached(self, address):
+        """Geocode an address with caching to avoid repeated API calls"""
+        if address not in self.geocoding_cache:
+            self.geocoding_cache[address] = geocode_address(address)
+        return self.geocoding_cache[address]
+    
+    def distance_finder(self, coords1, coords2):
+        """Calculate distance between two coordinate tuples"""
         return round(geopy.distance.geodesic(coords1, coords2).km, 3)
 
-    def distance_to_coords_finder(coords, address):
-        coords2 = geocode_address(address)
+    def distance_to_coords_finder(self, coords1, coords2):
+        """Calculate distance between two coordinate tuples"""
+        return round(geopy.distance.geodesic(coords1, coords2).km, 3)
 
-        return round(geopy.distance.geodesic(coords, coords2).km, 3)
-
-    def cluster_average(cluster):
-        lat = []
-        long = []
-
-        for i in cluster:
-            coords = geocode_address(i)
-            if coords is not None:
-                lat.append(coords[0])
-                long.append(coords[1])
-
+    def cluster_average(self, cluster_coords):
+        """Calculate average coordinates from a list of coordinate tuples"""
+        if not cluster_coords:
+            return None
+        
+        lat = [coord[0] for coord in cluster_coords if coord is not None]
+        long = [coord[1] for coord in cluster_coords if coord is not None]
+        
+        if not lat or not long:
+            return None
+            
         return sum(lat) / len(lat), sum(long) / len(long)
 
-    def cluster_merger(clusters, cluster_difference, index):
+    def cluster_merger(self, clusters, cluster_difference, index):
         if(len(clusters) <=1 or cluster_difference <= 0 or index >= len(clusters)):
             return None
         changed = False
@@ -57,36 +65,82 @@ class ProcessLogic:
         
 
 
-    def cluster_maker(places):
-        untouched_places = places.copy()
+    def cluster_maker(self, places):
+        """Optimized clustering algorithm that geocodes all addresses once at the beginning"""
+        if not places:
+            return []
+        
+        # Step 1: Geocode all addresses once and create address->coords mapping
+        address_coords_map = {}
+        valid_places = []
+        
+        for address in places:
+            coords = self.geocode_address_cached(address)
+            if coords is not None:
+                address_coords_map[address] = coords
+                valid_places.append(address)
+            else:
+                print(f"Warning: Could not geocode address: {address}")
+        
+        if not valid_places:
+            return []
+        
+        
+        # Step 2: Convert to coordinate-based clustering
+        untouched_coords = [(address, address_coords_map[address]) for address in valid_places]
         clusters = []
-
         cluster_difference = 1
 
-        while len(untouched_places) != 0:
-            current_address = untouched_places.pop()
-            single_cluster = [current_address]
-            cluster_average = geocode_address(current_address)
-            for i in range(len(untouched_places) - 1, -1, -1):
-                if ProcessLogic.distance_to_coords_finder(cluster_average, untouched_places[i]) <= cluster_difference:
-                    single_cluster.append(untouched_places.pop(i))
-                    cluster_average = ProcessLogic.cluster_average(single_cluster)
+        # Step 3: Initial clustering based on coordinates
+        while len(untouched_coords) != 0:
+            current_item = untouched_coords.pop()
+            current_address, current_coords = current_item
+            single_cluster = [current_item]
+            cluster_center = current_coords
+            
+            for i in range(len(untouched_coords) - 1, -1, -1):
+                _, coords = untouched_coords[i]
+                if self.distance_to_coords_finder(cluster_center, coords) <= cluster_difference:
+                    single_cluster.append(untouched_coords.pop(i))
+                    # Update cluster center to average of all addresses in cluster
+                    cluster_center = self.cluster_average([item[1] for item in single_cluster])
 
             clusters.append(single_cluster)
 
-        for i in range(len(clusters)):
-            clusters[i] = (clusters[i], ProcessLogic.cluster_average(clusters[i]))
+        # Step 4: Convert to final format with addresses and average coordinates
+        final_clusters = []
+        for cluster in clusters:
+            addresses = [item[0] for item in cluster]
+            avg_coords = self.cluster_average([item[1] for item in cluster])
+            final_clusters.append((addresses, avg_coords))
 
+        # Step 5: Merge nearby clusters
         index = 0
         while(True):
-            result = ProcessLogic.cluster_merger(clusters, cluster_difference, index)
+            result = self.cluster_merger(final_clusters, cluster_difference, index)
             if result is None:
                 index += 1
-                if(index >= len(clusters)):
+                if(index >= len(final_clusters)):
                     break
                 continue
             else:
-                clusters = result
+                final_clusters = result
                 continue
 
-        return clusters
+        return final_clusters
+
+
+locations_delft = ["Brabantse Turfmarkt 67, 2611 CM Delft", "Voldersgracht 7, 2611 ET Delft", "Oude Delft 92, 2611 CE Delft", 
+                    "Choorstraat 24, 2611 JG Delft", "Beestenmarkt 5, 2611 GA Delft", "Phoenixstraat 4C, 2611 AL Delft", 
+                    "Kromstraat 29, 2611 EP Delft", "Vlamingstraat 2, 2611 KW Delft", "Markt 69, 2611 GS Delft"]
+
+locations_denhaag = ["Raamstraat 15, 2512 BX Den Haag", "Korte Houtstraat 5, 2511 CC Den Haag", "Oude Molstraat 21, 2513 BA Den Haag", 
+                    "Lutherse Burgwal 5, 2512 CB Den Haag", "Papestraat 30, 2513 AW Den Haag", "Prinsestraat 124, 2513 CH Den Haag", 
+                    "Oude Molstraat 13, 2513 BA Den Haag", "Riviervismarkt 1, 2513 AM Den Haag", "Grote Markt 29, 2511 BG Den Haag"]
+
+locations = locations_delft + locations_denhaag
+
+processor = ProcessLogic()
+result = processor.cluster_maker(locations)
+
+print(result)

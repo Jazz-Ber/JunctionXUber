@@ -1,0 +1,3 @@
+Goal: Add to the Uber app to support the earners (drivers)
+
+Idea: Add a feature where during idle time in between rides, the app suggests busy areas to drive to, to increase likelihood of being close to next drive.

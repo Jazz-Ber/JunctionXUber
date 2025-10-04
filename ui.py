@@ -127,6 +127,9 @@ class App(customtkinter.CTk):
         
         self.appearance_mode_optionemenu.set("Dark")
         self.map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga", max_zoom=22)
+        self.map_widget.add_right_click_menu_command(label="Route to here",
+                                            command=self.add_route_event,
+                                            pass_coords=True)
 
     def search_event(self, event=None):
         address = self.entry.get().strip()
@@ -193,6 +196,20 @@ class App(customtkinter.CTk):
                 print(f"Could not find coordinates for address: {idle_address}")
         else:
             print("Please enter an address to search")
+
+    def add_route_event(self, coords):
+        print("Add marker:", coords)
+        self.map_widget.delete_all_marker()
+        if self.current_location_coords:
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+        self.map_widget.delete_all_path()
+
+        lat, lon = coords
+        new_area_marker = self.map_widget.set_marker(lat, lon)
+
+        if self.current_location_coords:
+            busy_path = self.map_widget.set_path([self.current_location_coords, (lat, lon)])
+        print(f"Setting route to coordinates: {lat}, {lon}")
 
     def change_appearance_mode(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)

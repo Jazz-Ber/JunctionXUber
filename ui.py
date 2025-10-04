@@ -147,7 +147,7 @@ class App(customtkinter.CTk):
     def find_idle_place(self):
         # TODO: Add logic to find idle place
         print("Finding idle place...")
-        
+
     def change_appearance_mode(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)
 
@@ -156,8 +156,3 @@ class App(customtkinter.CTk):
 
     def start(self):
         self.mainloop()
-
-
-if __name__ == "__main__":
-    app = App()
-    app.start()

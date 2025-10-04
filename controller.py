@@ -6,8 +6,8 @@ from Services.CSVService import Id_To_Name
 
 class Controller:
     def __init__(self, client):
-        self.busy_coords = (52.07515870380299, 4.3082185994332525)
-        self.idle_coords = (51.85096345959651, 4.543824271176097)
+        self.busy_address = (52.07515870380299, 4.3082185994332525)
+        self.idle_address = (51.85096345959651, 4.543824271176097)
         self.client = client
 
 

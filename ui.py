@@ -1,143 +1,309 @@
-import tkinter as tk
+import customtkinter
 from tkintermapview import TkinterMapView
-from tkinter import ttk
+import requests
+import json
+import math
+from controller import Controller
 
-class App:
-    def __init__(self):
-        self.window = tk.Tk()
-        self.window.title("Uber Driver Assistant")
-        self.window.geometry("1200x800")
-        self.window.configure(bg='gray18')
+controller = Controller()
 
-        # Create main frame with grid layout
-        main_frame = tk.Frame(self.window, bg='gray18')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+customtkinter.set_default_color_theme("blue")
 
-        # Create left panel for controls
-        control_panel = tk.Frame(main_frame, width=250, bg='gray20')
-        control_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
-        control_panel.pack_propagate(False)
 
-        # Create right panel for map
-        map_frame = tk.Frame(main_frame)
-        map_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+def geocode_address(address):
+    """Geocode an address using Nominatim with proper User-Agent header"""
+    url = "https://nominatim.openstreetmap.org/search"
+    headers = {
+        'User-Agent': 'JunctionXUber/1.0 (Educational Project)'
+    }
+    params = {
+        'q': address,
+        'format': 'jsonv2',
+        'addressdetails': 1,
+        'limit': 1
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                return float(data[0]['lat']), float(data[0]['lon'])
+            else:
+                print(f"No results found for address: {address}")
+                return None
+        else:
+            print(f"Geocoding failed with status code: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error geocoding address '{address}': {e}")
+        return None
 
-        # Add title to control panel
-        title_label = tk.Label(control_panel, text="Uber Driver Assistant", 
-                              font=('Inter', 16, 'bold'), bg='gray20', fg='mintcream')
-        title_label.pack(pady=10)
 
-        # Add map controls
-        self.setup_map_controls(control_panel)
-
-        # Create the map view
-        self.map_widget = TkinterMapView(map_frame, width=900, height=700, corner_radius=0)
-        self.map_widget.pack(fill=tk.BOTH, expand=True)
-
-        # Set initial map position (Delft as example)
-        self.map_widget.set_position(52.0116, 4.3571)  # Delft coordinates
-        self.map_widget.set_zoom(17)
-
-        # Add a marker for current location
-        self.current_location_marker = self.map_widget.set_marker(52.0116, 4.3571, 
-                                                                 text="Current Location")
-
-        # Start the event loop.
-        self.window.mainloop()
-
-    def setup_map_controls(self, parent):
-        """Setup map control buttons and information in the control panel"""
+def get_driving_route(start_coords, end_coords):
+    """Get driving route waypoints between two coordinates using OpenRouteService"""
+    try:
+        # Using OpenRouteService (free alternative to Google Maps API)
+        url = "https://api.openrouteservice.org/v2/directions/driving-car"
         
-        # Location input section
-        location_frame = tk.LabelFrame(parent, text="Location Search", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
-        location_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        self.location_entry = tk.Entry(location_frame, width=25)
-        self.location_entry.pack(pady=5)
-        # Use a placeholder-like effect for the Entry widget
-        def on_entry_focus_in(event):
-            if self.location_entry.get() == "Enter location...":
-                self.location_entry.delete(0, tk.END)
-                self.location_entry.config(fg='black')
-
-        def on_entry_focus_out(event):
-            if not self.location_entry.get():
-                self.location_entry.insert(0, "Enter location...")
-                self.location_entry.config(fg='grey')
-
-        self.location_entry.insert(0, "Enter location...")
-        self.location_entry.config(fg='grey')
-        self.location_entry.bind("<FocusIn>", on_entry_focus_in)
-        self.location_entry.bind("<FocusOut>", on_entry_focus_out)
-
-        search_button = tk.Button(location_frame, text="Search Location", 
-                                 command=self.search_location)
-        search_button.pack(pady=5)
-
-        # Map controls section
-        controls_frame = tk.LabelFrame(parent, text="Map Controls", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
-        controls_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        # Zoom controls
-        zoom_in_button = tk.Button(controls_frame, text="Zoom In", 
-                                  command=self.zoom_in)
-        zoom_in_button.pack(side=tk.LEFT, padx=2, pady=5)
-
-        zoom_out_button = tk.Button(controls_frame, text="Zoom Out", 
-                                   command=self.zoom_out)
-        zoom_out_button.pack(side=tk.LEFT, padx=2, pady=5)
-
-        # Reset view button
-        reset_button = tk.Button(controls_frame, text="Reset View", 
-                                command=self.reset_view)
-        reset_button.pack(side=tk.LEFT, padx=2, pady=5)
-
-        # Driver information section
-        info_frame = tk.LabelFrame(parent, text="Driver Info", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
-        info_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        self.status_label = tk.Label(info_frame, text="Status: Available", 
-                                    bg='gray20', font=('Inter', 10, 'bold'), fg='mintcream')
-        self.status_label.pack(pady=5)
-
-        self.location_label = tk.Label(info_frame, text="Location: Delft", 
-                                      bg='gray20', wraplength=200, fg='mintcream')
-        self.location_label.pack(pady=5)
-
-        # Close button
-        close_button = tk.Button(parent, text="Close App", 
-                                command=self.window.destroy,
-                                bg='red', fg='mintcream', font=('Inter', 10, 'bold'))
-        close_button.pack(side=tk.BOTTOM, pady=10)
-
-    def search_location(self):
-        """Search for a location and center the map on it"""
-        location = self.location_entry.get()
-        if location and location != "Enter location...":
-            try:
-                # This will search for the location and center the map
-                self.map_widget.set_address(location)
-                # Update location label
-                self.location_label.config(text=f"Location: {location}")
-            except Exception as e:
-                print(f"Error searching location: {e}")
-
-    def zoom_in(self):
-        """Zoom in the map"""
-        current_zoom = self.map_widget.get_zoom()
-        self.map_widget.set_zoom(current_zoom + 1)
-
-    def zoom_out(self):
-        """Zoom out the map"""
-        current_zoom = self.map_widget.get_zoom()
-        self.map_widget.set_zoom(current_zoom - 1)
-
-    def reset_view(self):
-        """Reset map to default view"""
-        self.map_widget.set_position(52.0116, 4.3571)
-        self.map_widget.set_zoom(17)
-        self.location_label.config(text="Location: Delft")
+        # OpenRouteService requires an API key, but you can use a free one
+        # For demo purposes, we'll use a simple fallback
+        headers = {
+            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+        }
+        
+        # Format: [longitude, latitude] for OpenRouteService
+        body = {
+            "coordinates": [
+                [start_coords[1], start_coords[0]],  # [lon, lat]
+                [end_coords[1], end_coords[0]]       # [lon, lat]
+            ],
+            "format": "geojson"
+        }
+        
+        # For now, we'll use a simple fallback that creates intermediate waypoints
+        # In a real implementation, you'd use a proper routing API with an API key
+        print("Routing service not configured - using straight line path")
+        return [start_coords, end_coords]
+        
+    except Exception as e:
+        print(f"Error getting driving route: {e}")
+        # Fallback to straight line
+        return [start_coords, end_coords]
 
 
+def get_driving_route_with_osrm(start_coords, end_coords):
+    """Get driving route waypoints using OSRM (Open Source Routing Machine) - free service"""
+    try:
+        # OSRM public server - free but may have rate limits
+        url = f"http://router.project-osrm.org/route/v1/driving/{start_coords[1]},{start_coords[0]};{end_coords[1]},{end_coords[0]}"
+        params = {
+            'overview': 'full',
+            'geometries': 'geojson'
+        }
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('code') == 'Ok' and data.get('routes'):
+                # Extract coordinates from the route geometry
+                coordinates = data['routes'][0]['geometry']['coordinates']
+                distance = round(float(data['routes'][0]['legs'][0]['distance']) / 1000.0, 1)
+                duration = math.ceil(float(data['routes'][0]['legs'][0]['duration']) / 60.0)
+                # Convert from [lon, lat] to [lat, lon] format for tkintermapview
+                waypoints = [(coord[1], coord[0]) for coord in coordinates]
+                return waypoints, distance, duration
+            else:
+                print(f"OSRM routing failed: {data}")
+                return [start_coords, end_coords], None, None
+        else:
+            print(f"OSRM request failed with status code: {response.status_code}")
+            return [start_coords, end_coords], None, None
+            
+    except Exception as e:
+        print(f"Error getting OSRM route: {e}")
+        return [start_coords, end_coords], None, None
 
-App()
+
+class App(customtkinter.CTk):
+
+    APP_NAME = "Uber Driver Assitent"
+    WIDTH = 800
+    HEIGHT = 500
+    current_location_marker = None
+    current_location_coords = None
+
+    def __init__(self, controller, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Add controller as dependency
+        self.controller = controller
+
+        self.title(App.APP_NAME)
+        self.geometry(str(App.WIDTH) + "x" + str(App.HEIGHT))
+        self.minsize(App.WIDTH, App.HEIGHT)
+
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.marker_list = []
+
+        # ============ create two CTkFrames ============
+
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.frame_left = customtkinter.CTkFrame(master=self, width=150, corner_radius=0, fg_color=None)
+        self.frame_left.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
+
+        self.frame_right = customtkinter.CTkFrame(master=self, corner_radius=0)
+        self.frame_right.grid(row=0, column=1, rowspan=1, pady=0, padx=0, sticky="nsew")
+
+        # ============ frame_left ============
+
+        self.frame_left.grid_rowconfigure(2, weight=1)
+
+        self.button_1 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Find Busy Place", font=("Inter", 15),
+                                                command=self.find_busy_place)
+        self.button_1.grid(pady=(20, 0), padx=(20, 20), row=0, column=0)
+
+        self.button_2 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Find Idle Place", font=("Inter", 15),
+                                                command=self.find_idle_place)
+        self.button_2.grid(pady=(100, 0), padx=(20, 20), row=0, column=0)
+
+        self.current_route_label = customtkinter.CTkLabel(self.frame_left, text="", font=("Inter", 18), anchor="w")
+        self.current_route_label.grid(row=1, column=0, padx=(20, 20), pady=(20, 0))
+
+        self.appearance_mode_label = customtkinter.CTkLabel(self.frame_left, text="Appearance Mode:", font=("Inter", 15), anchor="w")
+        self.appearance_mode_label.grid(row=5, column=0, padx=(20, 20), pady=(20, 0))
+        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.frame_left, values=["Light", "Dark", "System"],
+                                                                       command=self.change_appearance_mode)
+        self.appearance_mode_optionemenu.grid(row=6, column=0, padx=(20, 20), pady=(10, 20))
+
+        # ============ frame_right ============
+
+        self.frame_right.grid_rowconfigure(1, weight=1)
+        self.frame_right.grid_rowconfigure(0, weight=0)
+        self.frame_right.grid_columnconfigure(0, weight=1)
+        self.frame_right.grid_columnconfigure(1, weight=0)
+        self.frame_right.grid_columnconfigure(2, weight=1)
+
+        self.map_widget = TkinterMapView(self.frame_right, corner_radius=0)
+        self.map_widget.grid(row=1, rowspan=1, column=0, columnspan=3, sticky="nswe", padx=(0, 0), pady=(0, 0))
+
+        self.entry = customtkinter.CTkEntry(master=self.frame_right,
+                                            placeholder_text="Type address...", font=("Inter", 12),)
+        self.entry.grid(row=0, column=0, sticky="we", padx=(12, 0), pady=12)
+        self.entry.bind("<Return>", self.search_event)
+
+        self.button_5 = customtkinter.CTkButton(master=self.frame_right,
+                                                text="Search", font=("Inter", 15),
+                                                width=90,
+                                                command=self.search_event)
+        self.button_5.grid(row=0, column=1, sticky="w", padx=(12, 0), pady=12)
+
+        # Set default values
+        # Use custom geocoding for default address
+        delft_coords = geocode_address("Delft")
+        if delft_coords:
+            lat, lon = delft_coords
+            self.current_location_coords = (lat, lon)
+            self.current_location_marker = self.map_widget.set_position(lat, lon, marker=True)
+            self.map_widget.set_zoom(16)
+        else:
+            # Fallback to default coordinates for Delft
+            self.current_location_coords = (52.0116, 4.3571)
+            self.current_location_marker = self.map_widget.set_position(52.0116, 4.3571, marker=True)
+            self.map_widget.set_zoom(16)
+        
+        self.appearance_mode_optionemenu.set("Dark")
+        self.map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga", max_zoom=22)
+        self.map_widget.add_right_click_menu_command(label="Route to here",
+                                            command=self.add_route_event,
+                                            pass_coords=True)
+
+    def search_event(self, event=None):
+        address = self.entry.get().strip()
+        self.entry.delete(0, "end")
+        self.search_event_with_address(address)
+
+    def search_event_with_address(self, address):
+        if address:
+            # Use our custom geocoding function
+            coordinates = geocode_address(address)
+            if coordinates:
+                self.map_widget.delete_all_marker()
+                self.map_widget.delete_all_path()
+                lat, lon = coordinates
+                self.current_location_coords = (lat, lon)
+                self.current_location_marker = self.map_widget.set_position(lat, lon, marker=True)
+                self.map_widget.set_zoom(15)
+                print(f"Found address '{address}' at coordinates: {lat}, {lon}")
+            else:
+                print(f"Could not find coordinates for address: {address}")
+        else:
+            print("Please enter an address to search")
+
+    def find_busy_place(self):
+        busy_address = self.controller.get_busy_address()
+        if busy_address:
+            coordinates = geocode_address(busy_address)
+            if coordinates:
+                self.map_widget.delete_all_marker()
+                if self.current_location_coords:
+                    self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+                self.map_widget.delete_all_path()
+
+                lat, lon = coordinates
+                busy_area_marker = self.map_widget.set_position(lat, lon, marker=True)
+                self.map_widget.set_zoom(15)
+                
+                # Get actual driving route instead of straight line
+                if self.current_location_coords:
+                    route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
+                    busy_path = self.map_widget.set_path(route_waypoints)
+                    print(f"Generated driving route with {len(route_waypoints)} waypoints")
+                
+                print(f"Found address '{busy_address}' at coordinates: {lat}, {lon}")
+            else:
+                print(f"Could not find coordinates for address: {busy_address}")
+        else:
+            print("Please enter an address to search")
+
+    def find_idle_place(self):
+        idle_address = self.controller.get_idle_address()
+        if idle_address:
+            coordinates = geocode_address(idle_address)
+            if coordinates:
+                self.map_widget.delete_all_marker()
+                if self.current_location_coords:
+                    self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+                self.map_widget.delete_all_path()
+                
+                lat, lon = coordinates
+                idle_area_marker = self.map_widget.set_position(lat, lon, marker=True)
+                self.map_widget.set_zoom(15)
+                
+                # Get actual driving route instead of straight line
+                if self.current_location_coords:
+                    route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
+                    idle_path = self.map_widget.set_path(route_waypoints)
+                    print(f"Generated driving route with {len(route_waypoints)} waypoints")
+                
+                print(f"Found address '{idle_address}' at coordinates: {lat}, {lon}")
+            else:
+                print(f"Could not find coordinates for address: {idle_address}")
+        else:
+            print("Please enter an address to search")
+
+    def add_route_event(self, coords):
+        print("Add marker:", coords)
+        self.map_widget.delete_all_marker()
+        if self.current_location_coords:
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+        self.map_widget.delete_all_path()
+
+        lat, lon = coords
+        new_area_marker = self.map_widget.set_marker(lat, lon)
+
+        # Get actual driving route instead of straight line
+        if self.current_location_coords:
+            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
+            busy_path = self.map_widget.set_path(route_waypoints)
+            print(f"Generated driving route with {len(route_waypoints)} waypoints")
+        
+        print(f"Setting route to coordinates: {lat}, {lon}")
+
+    def change_appearance_mode(self, new_appearance_mode: str):
+        customtkinter.set_appearance_mode(new_appearance_mode)
+
+    def on_closing(self, event=0):
+        self.destroy()
+
+    def start(self):
+        self.mainloop()

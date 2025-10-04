@@ -90,5 +90,3 @@ class ProcessLogic:
                 continue
 
         return clusters
-
-print(ProcessLogic.cluster_maker(["Kromstraat 33, 2611 EP Delft", "Brasserskade 2, 2612 CE Delft", "Van der Mastenstraat 24-38, 2611 NZ Delft"]))

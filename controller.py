@@ -12,6 +12,25 @@ class Controller:
 
 
     def getLocations(self, current_coords):
+        """
+        Retrieve nearby locations based on the current coordinates and currently open venue types.
+
+        This method determines which venue categories are open at the current time using the
+        `get_venue_type()` function, then queries the Foursquare API for locations of those types
+        within a 10 km radius of the provided coordinates.
+
+        Args:
+            current_coords (tuple): A tuple of (latitude, longitude) representing the current location.
+
+        Returns:
+            list: A list of (latitude, longitude) tuples for each location found by the API.
+
+        Notes:
+            - The method uses the FoursquareClient instance (`self.client`) to make the API request.
+            - Only locations with valid latitude and longitude are included in the result.
+            - The search is limited to 50 results and a 10,000 meter radius.
+            - Venue types are determined dynamically based on current time and day.
+        """
         types = ""
         for i in get_venue_type():
             types += i

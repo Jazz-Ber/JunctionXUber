@@ -10,6 +10,24 @@ class Parsers():
 
     @staticmethod
     def Parse_Day_String(day_string):
+        """
+        Parse a day string (e.g., 'Mon-Fri', 'Sat-Sun') into a list of weekday numbers.
+
+        Args:
+            day_string (str): A string representing a range of days, such as 'Mon-Fri' or 'Sat-Sun'.
+
+        Returns:
+            list: A list of integers representing the days of the week covered by the range.
+                  Monday is 0 and Sunday is 6. If the input is invalid or not a range, returns an empty list.
+
+        Example:
+            >>> Parsers.Parse_Day_String('Mon-Fri')
+            [0, 1, 2, 3, 4]
+            >>> Parsers.Parse_Day_String('Sat-Mon')
+            [5, 6, 0]
+            >>> Parsers.Parse_Day_String('Wed-Thu')
+            [2, 3]
+        """
         day_mapping = {
             'Mon': 0, 'Tue': 1, 'Wed': 2, 'Thu': 3, 
             'Fri': 4, 'Sat': 5, 'Sun': 6

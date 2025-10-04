@@ -78,19 +78,10 @@ class App:
         controls_frame = tk.LabelFrame(parent, text="Map Controls", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
         controls_frame.pack(fill=tk.X, padx=10, pady=5)
 
-        # Zoom controls
-        zoom_in_button = tk.Button(controls_frame, text="Zoom In", 
-                                  command=self.zoom_in)
-        zoom_in_button.pack(side=tk.LEFT, padx=2, pady=5)
-
-        zoom_out_button = tk.Button(controls_frame, text="Zoom Out", 
-                                   command=self.zoom_out)
-        zoom_out_button.pack(side=tk.LEFT, padx=2, pady=5)
-
         # Reset view button
         reset_button = tk.Button(controls_frame, text="Reset View", 
                                 command=self.reset_view)
-        reset_button.pack(side=tk.LEFT, padx=2, pady=5)
+        reset_button.pack(pady=5)
 
         # Driver information section
         info_frame = tk.LabelFrame(parent, text="Driver Info", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')

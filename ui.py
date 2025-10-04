@@ -5,7 +5,7 @@ import json
 import math
 from controller import Controller
 
-controller = Controller()
+# controller = Controller()
 
 customtkinter.set_default_color_theme("blue")
 
@@ -113,8 +113,11 @@ class App(customtkinter.CTk):
     current_location_marker = None
     current_location_coords = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, controller, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Add controller as dependency
+        self.controller = controller
 
         self.title(App.APP_NAME)
         self.geometry(str(App.WIDTH) + "x" + str(App.HEIGHT))
@@ -224,7 +227,7 @@ class App(customtkinter.CTk):
             print("Please enter an address to search")
 
     def find_busy_place(self):
-        busy_address = controller.busy_address()
+        busy_address = self.controller.get_busy_address()
         if busy_address:
             coordinates = geocode_address(busy_address)
             if coordinates:
@@ -251,7 +254,7 @@ class App(customtkinter.CTk):
             print("Please enter an address to search")
 
     def find_idle_place(self):
-        idle_address = controller.idle_address()
+        idle_address = self.controller.get_idle_address()
         if idle_address:
             coordinates = geocode_address(idle_address)
             if coordinates:

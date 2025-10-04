@@ -1,4 +1,9 @@
 from datetime import datetime
+import csv
+from Services.CSVService import Id_To_Name
+from Services.parsers import Parsers
+
+parsers = Parsers()
 
 def get_venue_type():
     now = datetime.now()
@@ -6,45 +11,33 @@ def get_venue_type():
     current_weekday = now.weekday()  # 0=Monday, 6=Sunday
     
     venue_types = []
-    
-    if 12 <= current_hour <= 14:
-        venue_types.append("Cafés")
-    
-    if 19 <= current_hour <= 22:
-        venue_types.append("Restaurants")
-    
-    if (22 <= current_hour <= 23) or (2 <= current_hour <= 5):
-        venue_types.append("Clubs")
-    
-    airport_base_hours = (4 <= current_hour <= 8) or (21 <= current_hour <= 23)
-    sunday_evening = (current_weekday == 6 and current_hour >= 18)  # Sunday evening
-    monday_morning = (current_weekday == 0 and current_hour < 12)   # Monday morning
-    
-    if airport_base_hours or sunday_evening or monday_morning:
-        venue_types.append("Airports")
-    
-    if (7 <= current_hour <= 10) or (15 <= current_hour <= 18):
-        venue_types.append("Hotels")
-    
-    if 11 <= current_hour <= 16:
-        venue_types.append("Parks")
 
-    if 6 <= current_hour <= 9:
-        venue_types.append("Transportation Hubs")
-    
-    if (16 <= current_hour <= 20) and (0 <= current_weekday <= 4):
-        venue_types.append("Offices")
-
+    csv_file_path = "Data/taxi_demand_categories_explicit.csv"
+    with open(csv_file_path, 'r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            start_time = parsers.Parse_Time_String(row['Start Time'].strip().strip('"').strip("'"))
+            end_time = parsers.Parse_Time_String(row['End Time'].strip().strip('"').strip("'"))
+            valid_days = parsers.Parse_Day_String(row['Days'])
+            
+            if current_weekday in valid_days:
+                if start_time > end_time:
+                    if current_hour >= start_time.hour or current_hour <= end_time.hour:
+                        venue_types.append(row['Category ID'])
+                elif start_time.hour <= current_hour <= end_time.hour:
+                    venue_types.append(row['Category ID'])
+        
     return venue_types if venue_types else ["No venues open at this time"]
-
+    
+    
 
 # Example usage and testing function
 def test_venue_chooser():
     """Test function to demonstrate the venue chooser"""
     current_venue = get_venue_type()
-    current_time = datetime.now().strftime("%H:%M on %A")
-    print(f"Current time: {current_time}")
-    print(f"Recommended venue type: {current_venue}")
+    print(datetime.now())
+    for venue in current_venue:
+        print(venue + Id_To_Name(venue))
 
 
 if __name__ == "__main__":

@@ -12,7 +12,8 @@ def get_venue_type():
     
     venue_types = []
 
-    csv_file_path = "Data/taxi_demand_categories_explicit.csv"
+    import os
+    csv_file_path = os.path.join(os.path.dirname(__file__), "Data", "taxi_demand_categories_explicit.csv")
     with open(csv_file_path, 'r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
         for row in reader:

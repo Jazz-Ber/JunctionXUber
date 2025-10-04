@@ -32,17 +32,18 @@ class Controller:
             - Venue types are determined dynamically based on current time and day.
         """
         types = ""
-        for i in get_venue_type():
-            types += i
-            types += ","
-        types = types.rstrip(types[-1])
+        venue_types = get_venue_type()
+        if venue_types and venue_types[0] != "No venues open at this time":
+            types = ",".join(venue_types)
+
+        print(types)
 
         params = {
-            "ll": f"{round(current_coords[0], 4)},{round(current_coords[1], 4)}",
+            "ll": f"{current_coords[0]},{current_coords[1]}",
             "radius": 10000,
             "limit": 50,
             "open_now": True,
-            "categories": types
+            "fsq_category_ids": types
         }
 
         response = self.client.getNearbyLocations(params)
@@ -79,5 +80,42 @@ class Controller:
         return clusters[scores.index(max(scores))][1]
 
 
-    def get_idle_address(self, clusters):
-        return self.idle_address
+    def get_idle_address(self, clusters, current_coords):
+        if not clusters:
+            return self.idle_address
+        
+        scores = []
+        for i in clusters:
+            scores.append((len(i[0]) / math.sqrt(round(geopy.distance.geodesic(current_coords, i[1]).km, 3))))
+
+        busy_location =  clusters[scores.index(max(scores))][1]
+
+        print(busy_location)
+
+        p = {
+            "ll": f"{busy_location[0]},{busy_location[1]}",
+            "radius": 1000,
+            "limit": 10,
+            "open_now": True,
+            "fsq_category_ids": "4c38df4de52ce0d596b336e1",
+            "sort": "DISTANCE"
+        }
+
+        response = self.client.getNearbyLocations(p)
+        result = response.json().get("results", [])
+        result_coords = []
+
+        for i in result:
+
+            lat = i.get("latitude", None)
+            long = i.get("longitude", None)
+
+            if not lat or not long:
+                continue
+
+            result_coords.append((lat, long))
+
+        if not result_coords:
+            return None
+
+        return result_coords[0]

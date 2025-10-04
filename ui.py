@@ -208,9 +208,11 @@ class App(customtkinter.CTk):
     def _find_idle_place_threaded(self):
         """Threaded version of find_idle_place - runs in background"""
         try:
-            idle_address = self.controller.get_idle_address(None)
+            locations = self.controller.getLocations(self.current_location_coords)
+            clusters = self.process_logic.cluster_maker(locations)
+            idle_address = self.controller.get_idle_address(clusters, self.current_location_coords)
             if idle_address:
-                self.after(0, self._update_map_for_idle_place, coordinates, idle_address)
+                self.after(0, self._update_map_for_idle_place, idle_address)
             else:
                 print("Please enter an address to search")
                 
@@ -238,14 +240,14 @@ class App(customtkinter.CTk):
             busy_path = self.map_widget.set_path(route_waypoints)
             print(f"Generated driving route with {len(route_waypoints)} waypoints")
 
-    def _update_map_for_idle_place(self, coordinates, idle_address):
+    def _update_map_for_idle_place(self, idle_address):
         """Update map UI for idle place (runs in main thread)"""
         self.map_widget.delete_all_marker()
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
         
-        lat, lon = coordinates
+        lat, lon = idle_address
         idle_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
         self.map_widget.set_zoom(15)
         

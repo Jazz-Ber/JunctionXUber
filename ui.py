@@ -1,6 +1,7 @@
 import customtkinter
 from tkintermapview import TkinterMapView
 import requests
+import json
 from controller import Controller
 
 controller = Controller()
@@ -36,6 +37,70 @@ def geocode_address(address):
     except Exception as e:
         print(f"Error geocoding address '{address}': {e}")
         return None
+
+
+def get_driving_route(start_coords, end_coords):
+    """Get driving route waypoints between two coordinates using OpenRouteService"""
+    try:
+        # Using OpenRouteService (free alternative to Google Maps API)
+        url = "https://api.openrouteservice.org/v2/directions/driving-car"
+        
+        # OpenRouteService requires an API key, but you can use a free one
+        # For demo purposes, we'll use a simple fallback
+        headers = {
+            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8'
+        }
+        
+        # Format: [longitude, latitude] for OpenRouteService
+        body = {
+            "coordinates": [
+                [start_coords[1], start_coords[0]],  # [lon, lat]
+                [end_coords[1], end_coords[0]]       # [lon, lat]
+            ],
+            "format": "geojson"
+        }
+        
+        # For now, we'll use a simple fallback that creates intermediate waypoints
+        # In a real implementation, you'd use a proper routing API with an API key
+        print("Routing service not configured - using straight line path")
+        return [start_coords, end_coords]
+        
+    except Exception as e:
+        print(f"Error getting driving route: {e}")
+        # Fallback to straight line
+        return [start_coords, end_coords]
+
+
+def get_driving_route_with_osrm(start_coords, end_coords):
+    """Get driving route waypoints using OSRM (Open Source Routing Machine) - free service"""
+    try:
+        # OSRM public server - free but may have rate limits
+        url = f"http://router.project-osrm.org/route/v1/driving/{start_coords[1]},{start_coords[0]};{end_coords[1]},{end_coords[0]}"
+        params = {
+            'overview': 'full',
+            'geometries': 'geojson'
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('code') == 'Ok' and data.get('routes'):
+                # Extract coordinates from the route geometry
+                coordinates = data['routes'][0]['geometry']['coordinates']
+                # Convert from [lon, lat] to [lat, lon] format for tkintermapview
+                waypoints = [(coord[1], coord[0]) for coord in coordinates]
+                return waypoints
+            else:
+                print(f"OSRM routing failed: {data}")
+                return [start_coords, end_coords]
+        else:
+            print(f"OSRM request failed with status code: {response.status_code}")
+            return [start_coords, end_coords]
+            
+    except Exception as e:
+        print(f"Error getting OSRM route: {e}")
+        return [start_coords, end_coords]
 
 
 class App(customtkinter.CTk):
@@ -166,9 +231,13 @@ class App(customtkinter.CTk):
                 lat, lon = coordinates
                 busy_area_marker = self.map_widget.set_position(lat, lon, marker=True)
                 self.map_widget.set_zoom(15)
-                # Use coordinate tuples instead of marker objects for set_path
+                
+                # Get actual driving route instead of straight line
                 if self.current_location_coords:
-                    busy_path = self.map_widget.set_path([self.current_location_coords, (lat, lon)])
+                    route_waypoints = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    busy_path = self.map_widget.set_path(route_waypoints)
+                    print(f"Generated driving route with {len(route_waypoints)} waypoints")
+                
                 print(f"Found address '{busy_address}' at coordinates: {lat}, {lon}")
             else:
                 print(f"Could not find coordinates for address: {busy_address}")
@@ -188,9 +257,13 @@ class App(customtkinter.CTk):
                 lat, lon = coordinates
                 idle_area_marker = self.map_widget.set_position(lat, lon, marker=True)
                 self.map_widget.set_zoom(15)
-                # Use coordinate tuples instead of marker objects for set_path
+                
+                # Get actual driving route instead of straight line
                 if self.current_location_coords:
-                    idle_path = self.map_widget.set_path([self.current_location_coords, (lat, lon)])
+                    route_waypoints = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+                    idle_path = self.map_widget.set_path(route_waypoints)
+                    print(f"Generated driving route with {len(route_waypoints)} waypoints")
+                
                 print(f"Found address '{idle_address}' at coordinates: {lat}, {lon}")
             else:
                 print(f"Could not find coordinates for address: {idle_address}")
@@ -207,8 +280,12 @@ class App(customtkinter.CTk):
         lat, lon = coords
         new_area_marker = self.map_widget.set_marker(lat, lon)
 
+        # Get actual driving route instead of straight line
         if self.current_location_coords:
-            busy_path = self.map_widget.set_path([self.current_location_coords, (lat, lon)])
+            route_waypoints = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            busy_path = self.map_widget.set_path(route_waypoints)
+            print(f"Generated driving route with {len(route_waypoints)} waypoints")
+        
         print(f"Setting route to coordinates: {lat}, {lon}")
 
     def change_appearance_mode(self, new_appearance_mode: str):

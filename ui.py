@@ -1,6 +1,9 @@
 import customtkinter
 from tkintermapview import TkinterMapView
 import requests
+from controller import Controller
+
+controller = Controller()
 
 customtkinter.set_default_color_theme("blue")
 
@@ -123,6 +126,9 @@ class App(customtkinter.CTk):
 
     def search_event(self, event=None):
         address = self.entry.get().strip()
+        self.search_event_with_address(address)
+
+    def search_event_with_address(self, address):
         if address:
             # Use our custom geocoding function
             coordinates = geocode_address(address)
@@ -138,12 +144,12 @@ class App(customtkinter.CTk):
             print("Please enter an address to search")
 
     def find_busy_place(self):
-        # TODO: Add logic to find busy place
-        print("Finding busy place...")
+        busy_address = controller.busy_address()
+        self.search_event_with_address(busy_address)
 
     def find_idle_place(self):
-        # TODO: Add logic to find idle place
-        print("Finding idle place...")
+        idle_address = controller.idle_address()
+        self.search_event_with_address(idle_address)
 
     def change_appearance_mode(self, new_appearance_mode: str):
         customtkinter.set_appearance_mode(new_appearance_mode)

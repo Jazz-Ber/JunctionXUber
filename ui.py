@@ -5,8 +5,6 @@ import json
 import math
 from controller import Controller
 
-# controller = Controller()
-
 customtkinter.set_default_color_theme("blue")
 
 
@@ -227,6 +225,7 @@ class App(customtkinter.CTk):
             print("Please enter an address to search")
 
     def find_busy_place(self):
+        self.controller.getLocations(self.current_location_coords)
         busy_address = self.controller.get_busy_address()
         if busy_address:
             coordinates = geocode_address(busy_address)

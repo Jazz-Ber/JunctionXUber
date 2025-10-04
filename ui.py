@@ -1,134 +1,163 @@
-import tkinter as tk
+import customtkinter
 from tkintermapview import TkinterMapView
-from tkinter import ttk
+import requests
 
-class App:
-    def __init__(self):
-        self.window = tk.Tk()
-        self.window.title("Uber Driver Assistant")
-        self.window.geometry("1200x800")
-        self.window.configure(bg='gray18')
+customtkinter.set_default_color_theme("blue")
 
-        # Create main frame with grid layout
-        main_frame = tk.Frame(self.window, bg='gray18')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        # Create left panel for controls
-        control_panel = tk.Frame(main_frame, width=250, bg='gray20')
-        control_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 10))
-        control_panel.pack_propagate(False)
+def geocode_address(address):
+    """Geocode an address using Nominatim with proper User-Agent header"""
+    url = "https://nominatim.openstreetmap.org/search"
+    headers = {
+        'User-Agent': 'JunctionXUber/1.0 (Educational Project)'
+    }
+    params = {
+        'q': address,
+        'format': 'jsonv2',
+        'addressdetails': 1,
+        'limit': 1
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data:
+                return float(data[0]['lat']), float(data[0]['lon'])
+            else:
+                print(f"No results found for address: {address}")
+                return None
+        else:
+            print(f"Geocoding failed with status code: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error geocoding address '{address}': {e}")
+        return None
 
-        # Create right panel for map
-        map_frame = tk.Frame(main_frame)
-        map_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        # Add title to control panel
-        title_label = tk.Label(control_panel, text="Uber Driver Assistant", 
-                              font=('Inter', 16, 'bold'), bg='gray20', fg='mintcream')
-        title_label.pack(pady=10)
+class App(customtkinter.CTk):
 
-        # Add map controls
-        self.setup_map_controls(control_panel)
+    APP_NAME = "TkinterMapView with CustomTkinter"
+    WIDTH = 800
+    HEIGHT = 500
 
-        # Create the map view
-        self.map_widget = TkinterMapView(map_frame, width=900, height=700, corner_radius=0)
-        self.map_widget.pack(fill=tk.BOTH, expand=True)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        # Set initial map position (Delft as example)
-        self.map_widget.set_position(52.0116, 4.3571)  # Delft coordinates
-        self.map_widget.set_zoom(17)
+        self.title(App.APP_NAME)
+        self.geometry(str(App.WIDTH) + "x" + str(App.HEIGHT))
+        self.minsize(App.WIDTH, App.HEIGHT)
 
-        # Add a marker for current location
-        self.current_location_marker = self.map_widget.set_marker(52.0116, 4.3571, 
-                                                                 text="Current Location")
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.bind("<Command-q>", self.on_closing)
+        self.bind("<Command-w>", self.on_closing)
+        self.createcommand('tk::mac::Quit', self.on_closing)
 
-        # Start the event loop.
-        self.window.mainloop()
+        self.marker_list = []
 
-    def setup_map_controls(self, parent):
-        """Setup map control buttons and information in the control panel"""
+        # ============ create two CTkFrames ============
+
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        self.frame_left = customtkinter.CTkFrame(master=self, width=150, corner_radius=0, fg_color=None)
+        self.frame_left.grid(row=0, column=0, padx=0, pady=0, sticky="nsew")
+
+        self.frame_right = customtkinter.CTkFrame(master=self, corner_radius=0)
+        self.frame_right.grid(row=0, column=1, rowspan=1, pady=0, padx=0, sticky="nsew")
+
+        # ============ frame_left ============
+
+        self.frame_left.grid_rowconfigure(2, weight=1)
+
+        self.button_1 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Find Busy Place",
+                                                command=self.find_busy_place)
+        self.button_1.grid(pady=(20, 0), padx=(20, 20), row=0, column=0)
+
+        self.button_2 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Find Idle Place",
+                                                command=self.find_idle_place)
+        self.button_2.grid(pady=(20, 0), padx=(20, 20), row=1, column=0)
+
+        self.appearance_mode_label = customtkinter.CTkLabel(self.frame_left, text="Appearance Mode:", anchor="w")
+        self.appearance_mode_label.grid(row=5, column=0, padx=(20, 20), pady=(20, 0))
+        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.frame_left, values=["Light", "Dark", "System"],
+                                                                       command=self.change_appearance_mode)
+        self.appearance_mode_optionemenu.grid(row=6, column=0, padx=(20, 20), pady=(10, 20))
+
+        # ============ frame_right ============
+
+        self.frame_right.grid_rowconfigure(1, weight=1)
+        self.frame_right.grid_rowconfigure(0, weight=0)
+        self.frame_right.grid_columnconfigure(0, weight=1)
+        self.frame_right.grid_columnconfigure(1, weight=0)
+        self.frame_right.grid_columnconfigure(2, weight=1)
+
+        self.map_widget = TkinterMapView(self.frame_right, corner_radius=0)
+        self.map_widget.grid(row=1, rowspan=1, column=0, columnspan=3, sticky="nswe", padx=(0, 0), pady=(0, 0))
+
+        self.entry = customtkinter.CTkEntry(master=self.frame_right,
+                                            placeholder_text="type address")
+        self.entry.grid(row=0, column=0, sticky="we", padx=(12, 0), pady=12)
+        self.entry.bind("<Return>", self.search_event)
+
+        self.button_5 = customtkinter.CTkButton(master=self.frame_right,
+                                                text="Search",
+                                                width=90,
+                                                command=self.search_event)
+        self.button_5.grid(row=0, column=1, sticky="w", padx=(12, 0), pady=12)
+
+        # Set default values
+        # Use custom geocoding for default address
+        delft_coords = geocode_address("Delft")
+        if delft_coords:
+            lat, lon = delft_coords
+            self.map_widget.set_position(lat, lon, marker=True)
+            self.map_widget.set_zoom(16)
+        else:
+            # Fallback to default coordinates for Delft
+            self.map_widget.set_position(52.0116, 4.3571, marker=True)
+            self.map_widget.set_zoom(16)
         
-        # Location input section
-        location_frame = tk.LabelFrame(parent, text="Location Search", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
-        location_frame.pack(fill=tk.X, padx=10, pady=5)
+        self.appearance_mode_optionemenu.set("Dark")
+        self.map_widget.set_tile_server("https://mt0.google.com/vt/lyrs=m&hl=en&x={x}&y={y}&z={z}&s=Ga", max_zoom=22)
 
-        self.location_entry = tk.Entry(location_frame, width=25)
-        self.location_entry.pack(pady=5)
-        # Use a placeholder-like effect for the Entry widget
-        def on_entry_focus_in(event):
-            if self.location_entry.get() == "Enter location...":
-                self.location_entry.delete(0, tk.END)
-                self.location_entry.config(fg='black')
+    def search_event(self, event=None):
+        address = self.entry.get().strip()
+        if address:
+            # Use our custom geocoding function
+            coordinates = geocode_address(address)
+            if coordinates:
+                self.map_widget.delete_all_marker()
+                lat, lon = coordinates
+                self.map_widget.set_position(lat, lon, marker=True)
+                self.map_widget.set_zoom(15)
+                print(f"Found address '{address}' at coordinates: {lat}, {lon}")
+            else:
+                print(f"Could not find coordinates for address: {address}")
+        else:
+            print("Please enter an address to search")
 
-        def on_entry_focus_out(event):
-            if not self.location_entry.get():
-                self.location_entry.insert(0, "Enter location...")
-                self.location_entry.config(fg='grey')
+    def find_busy_place(self):
+        # TODO: Add logic to find busy place
+        print("Finding busy place...")
 
-        self.location_entry.insert(0, "Enter location...")
-        self.location_entry.config(fg='grey')
-        self.location_entry.bind("<FocusIn>", on_entry_focus_in)
-        self.location_entry.bind("<FocusOut>", on_entry_focus_out)
+    def find_idle_place(self):
+        # TODO: Add logic to find idle place
+        print("Finding idle place...")
+        
+    def change_appearance_mode(self, new_appearance_mode: str):
+        customtkinter.set_appearance_mode(new_appearance_mode)
 
-        search_button = tk.Button(location_frame, text="Search Location", 
-                                 command=self.search_location)
-        search_button.pack(pady=5)
+    def on_closing(self, event=0):
+        self.destroy()
 
-        # Map controls section
-        controls_frame = tk.LabelFrame(parent, text="Map Controls", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
-        controls_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        # Reset view button
-        reset_button = tk.Button(controls_frame, text="Reset View", 
-                                command=self.reset_view)
-        reset_button.pack(pady=5)
-
-        # Driver information section
-        info_frame = tk.LabelFrame(parent, text="Driver Info", bg='gray20', fg='mintcream', highlightbackground='gray18', highlightcolor='gray18')
-        info_frame.pack(fill=tk.X, padx=10, pady=5)
-
-        self.status_label = tk.Label(info_frame, text="Status: Available", 
-                                    bg='gray20', font=('Inter', 10, 'bold'), fg='mintcream')
-        self.status_label.pack(pady=5)
-
-        self.location_label = tk.Label(info_frame, text="Location: Delft", 
-                                      bg='gray20', wraplength=200, fg='mintcream')
-        self.location_label.pack(pady=5)
-
-        # Close button
-        close_button = tk.Button(parent, text="Close App", 
-                                command=self.window.destroy,
-                                bg='red', fg='mintcream', font=('Inter', 10, 'bold'))
-        close_button.pack(side=tk.BOTTOM, pady=10)
-
-    def search_location(self):
-        """Search for a location and center the map on it"""
-        location = self.location_entry.get()
-        if location and location != "Enter location...":
-            try:
-                # This will search for the location and center the map
-                self.map_widget.set_address(location)
-                # Update location label
-                self.location_label.config(text=f"Location: {location}")
-            except Exception as e:
-                print(f"Error searching location: {e}")
-
-    def zoom_in(self):
-        """Zoom in the map"""
-        current_zoom = self.map_widget.get_zoom()
-        self.map_widget.set_zoom(current_zoom + 1)
-
-    def zoom_out(self):
-        """Zoom out the map"""
-        current_zoom = self.map_widget.get_zoom()
-        self.map_widget.set_zoom(current_zoom - 1)
-
-    def reset_view(self):
-        """Reset map to default view"""
-        self.map_widget.set_position(52.0116, 4.3571)
-        self.map_widget.set_zoom(17)
-        self.location_label.config(text="Location: Delft")
+    def start(self):
+        self.mainloop()
 
 
-
-App()
+if __name__ == "__main__":
+    app = App()
+    app.start()

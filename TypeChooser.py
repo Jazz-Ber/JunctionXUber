@@ -6,6 +6,33 @@ from Services.parsers import Parsers
 parsers = Parsers()
 
 def get_venue_type():
+    """
+    Determines which venue types are currently open based on the current time and day.
+
+    This function reads from a CSV file containing venue category information, including
+    their operating hours and valid days. It checks the current system time and day,
+    and returns a list of category IDs for venues that are open at the moment.
+
+    Returns:
+        list: A list of 'Category ID' strings for venues currently open.
+              If no venues are open, returns ["No venues open at this time"].
+
+    CSV File Format (taxi_demand_categories_explicit.csv):
+        - 'Category ID': Unique identifier for the venue type.
+        - 'Start Time': Opening time (string, e.g., "18:00").
+        - 'End Time': Closing time (string, e.g., "02:00").
+        - 'Days': Comma-separated days or ranges (e.g., "Mon-Fri,Sat").
+
+    Notes:
+        - Handles venues that are open overnight (e.g., 18:00 to 02:00).
+        - Uses helper methods from the Parsers class to parse time and day strings.
+        - Weekdays are represented as integers: 0=Monday, 6=Sunday.
+
+    Example:
+        >>> get_venue_type()
+        ['1001', '1002']
+
+    """
     now = datetime.now()
     current_hour = now.hour
     current_weekday = now.weekday()  # 0=Monday, 6=Sunday
@@ -28,9 +55,7 @@ def get_venue_type():
                 elif start_time.hour <= current_hour <= end_time.hour:
                     venue_types.append(row['Category ID'])
         
-    return venue_types if venue_types else ["No venues open at this time"]
-    
-    
+    return venue_types if venue_types else ["No venues open at this time"]    
 
 # Example usage and testing function
 def test_venue_chooser():

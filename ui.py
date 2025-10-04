@@ -157,7 +157,7 @@ class App(customtkinter.CTk):
 
         # Set default values
         # Use custom geocoding for default address
-        delft_coords = self.process_logic.geocode_address("Delft")
+        delft_coords = (52.01173610138923, 4.359210368076695)
         if delft_coords:
             lat, lon = delft_coords
             self.current_location_coords = (lat, lon)
@@ -192,8 +192,6 @@ class App(customtkinter.CTk):
             locations = self.controller.getLocations(self.current_location_coords)
             clusters = self.process_logic.cluster_maker(locations)
             busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
-            if not isinstance(busy_address, tuple):
-                busy_address = self.process_logic.geocode_address(busy_address)
 
             if busy_address:
                 # Update UI in main thread
@@ -212,12 +210,7 @@ class App(customtkinter.CTk):
         try:
             idle_address = self.controller.get_idle_address(None)
             if idle_address:
-                coordinates = self.process_logic.geocode_address(idle_address)
-                if coordinates:
-                    # Update UI in main thread
-                    self.after(0, self._update_map_for_idle_place, coordinates, idle_address)
-                else:
-                    print(f"Could not find coordinates for address: {idle_address}")
+                self.after(0, self._update_map_for_idle_place, coordinates, idle_address)
             else:
                 print("Please enter an address to search")
                 
@@ -270,10 +263,39 @@ class App(customtkinter.CTk):
         self.entry.delete(0, "end")
         self.search_event_with_address(address)
 
+    def geocode_address(self, address):
+        """Geocode an address using Nominatim with proper User-Agent header"""
+        url = "https://nominatim.openstreetmap.org/search"
+        headers = {
+            'User-Agent': 'JunctionXUber/1.0 (Educational Project)'
+        }
+        params = {
+            'q': address,
+            'format': 'jsonv2',
+            'addressdetails': 1,
+            'limit': 1
+        }
+
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return float(data[0]['lat']), float(data[0]['lon'])
+                else:
+                    print(f"No results found for address: {address}")
+                    return None
+            else:
+                print(f"Geocoding failed with status code: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"Error geocoding address '{address}': {e}")
+            return None
+
     def search_event_with_address(self, address):
         if address:
             # Use our custom geocoding function
-            coordinates = self.process_logic.geocode_address(address)
+            coordinates = self.geocode_address(address)
             if coordinates:
                 self.map_widget.delete_all_marker()
                 self.map_widget.delete_all_path()

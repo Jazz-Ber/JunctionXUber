@@ -14,7 +14,5 @@ client = FoursquareClient(fourSquareAPIKey)
 controller = Controller(client)
 app = App(controller)
 
-controller.getLocations(app.current_location_coords)
-
 # Pass the same controller to the UI
 app.start()

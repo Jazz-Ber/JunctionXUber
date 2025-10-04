@@ -1,15 +1,44 @@
 import geopy.distance
-from ui import geocode_address
+import requests
 
 class ProcessLogic:
     def __init__(self):
         # Cache for geocoded addresses to avoid repeated API calls
         self.geocoding_cache = {}
+
+    def geocode_address(self, address):
+        """Geocode an address using Nominatim with proper User-Agent header"""
+        url = "https://nominatim.openstreetmap.org/search"
+        headers = {
+            'User-Agent': 'JunctionXUber/1.0 (Educational Project)'
+        }
+        params = {
+            'q': address,
+            'format': 'jsonv2',
+            'addressdetails': 1,
+            'limit': 1
+        }
+        
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data:
+                    return float(data[0]['lat']), float(data[0]['lon'])
+                else:
+                    print(f"No results found for address: {address}")
+                    return None
+            else:
+                print(f"Geocoding failed with status code: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"Error geocoding address '{address}': {e}")
+            return None
     
     def geocode_address_cached(self, address):
         """Geocode an address with caching to avoid repeated API calls"""
         if address not in self.geocoding_cache:
-            self.geocoding_cache[address] = geocode_address(address)
+            self.geocoding_cache[address] = self.geocode_address(address)
         return self.geocoding_cache[address]
     
     def distance_finder(self, coords1, coords2):
@@ -128,19 +157,3 @@ class ProcessLogic:
                 continue
 
         return final_clusters
-
-
-locations_delft = ["Brabantse Turfmarkt 67, 2611 CM Delft", "Voldersgracht 7, 2611 ET Delft", "Oude Delft 92, 2611 CE Delft", 
-                    "Choorstraat 24, 2611 JG Delft", "Beestenmarkt 5, 2611 GA Delft", "Phoenixstraat 4C, 2611 AL Delft", 
-                    "Kromstraat 29, 2611 EP Delft", "Vlamingstraat 2, 2611 KW Delft", "Markt 69, 2611 GS Delft"]
-
-locations_denhaag = ["Raamstraat 15, 2512 BX Den Haag", "Korte Houtstraat 5, 2511 CC Den Haag", "Oude Molstraat 21, 2513 BA Den Haag", 
-                    "Lutherse Burgwal 5, 2512 CB Den Haag", "Papestraat 30, 2513 AW Den Haag", "Prinsestraat 124, 2513 CH Den Haag", 
-                    "Oude Molstraat 13, 2513 BA Den Haag", "Riviervismarkt 1, 2513 AM Den Haag", "Grote Markt 29, 2511 BG Den Haag"]
-
-locations = locations_delft + locations_denhaag
-
-processor = ProcessLogic()
-result = processor.cluster_maker(locations)
-
-print(result)

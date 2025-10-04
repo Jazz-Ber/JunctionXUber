@@ -3,6 +3,7 @@ from tkintermapview import TkinterMapView
 import requests
 import json
 import math
+import threading
 from controller import Controller
 from process_logic import ProcessLogic
 
@@ -81,6 +82,7 @@ class App(customtkinter.CTk):
     current_location_marker = None
     current_location_coords = None
     process_logic = ProcessLogic()
+    is_processing = False  # Track if any operation is running
 
     def __init__(self, controller, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -173,6 +175,96 @@ class App(customtkinter.CTk):
                                             command=self.add_route_event,
                                             pass_coords=True)
 
+    def _set_buttons_loading_state(self, is_loading=True):
+        """Enable or disable both action buttons and show loading state"""
+        if is_loading:
+            self.is_processing = True
+            self.button_1.configure(state="disabled", text="Processing...")
+            self.button_2.configure(state="disabled", text="Processing...")
+        else:
+            self.is_processing = False
+            self.button_1.configure(state="normal", text="Find Busy Place")
+            self.button_2.configure(state="normal", text="Find Idle Place")
+
+    def _find_busy_place_threaded(self):
+        """Threaded version of find_busy_place - runs in background"""
+        try:
+            locations = self.controller.getLocations(self.current_location_coords)
+            clusters = self.process_logic.cluster_maker(locations)
+            busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
+            if not isinstance(busy_address, tuple):
+                busy_address = self.process_logic.geocode_address(busy_address)
+
+            if busy_address:
+                # Update UI in main thread
+                self.after(0, self._update_map_for_busy_place, busy_address)
+            else:
+                print("Please enter an address to search")
+                
+        except Exception as e:
+            print(f"Error finding busy place: {e}")
+        finally:
+            # Always restore button state in main thread
+            self.after(0, self._set_buttons_loading_state, False)
+
+    def _find_idle_place_threaded(self):
+        """Threaded version of find_idle_place - runs in background"""
+        try:
+            idle_address = self.controller.get_idle_address(None)
+            if idle_address:
+                coordinates = self.process_logic.geocode_address(idle_address)
+                if coordinates:
+                    # Update UI in main thread
+                    self.after(0, self._update_map_for_idle_place, coordinates, idle_address)
+                else:
+                    print(f"Could not find coordinates for address: {idle_address}")
+            else:
+                print("Please enter an address to search")
+                
+        except Exception as e:
+            print(f"Error finding idle place: {e}")
+        finally:
+            # Always restore button state in main thread
+            self.after(0, self._set_buttons_loading_state, False)
+
+    def _update_map_for_busy_place(self, busy_address):
+        """Update map UI for busy place (runs in main thread)"""
+        self.map_widget.delete_all_marker()
+        if self.current_location_coords:
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+        self.map_widget.delete_all_path()
+
+        lat, lon = busy_address
+        busy_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
+        self.map_widget.set_zoom(15)
+        
+        # Get actual driving route instead of straight line
+        if self.current_location_coords:
+            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
+            busy_path = self.map_widget.set_path(route_waypoints)
+            print(f"Generated driving route with {len(route_waypoints)} waypoints")
+
+    def _update_map_for_idle_place(self, coordinates, idle_address):
+        """Update map UI for idle place (runs in main thread)"""
+        self.map_widget.delete_all_marker()
+        if self.current_location_coords:
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+        self.map_widget.delete_all_path()
+        
+        lat, lon = coordinates
+        idle_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
+        self.map_widget.set_zoom(15)
+        
+        # Get actual driving route instead of straight line
+        if self.current_location_coords:
+            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
+            idle_path = self.map_widget.set_path(route_waypoints)
+            print(f"Generated driving route with {len(route_waypoints)} waypoints")
+        
+        print(f"Found address '{idle_address}' at coordinates: {lat}, {lon}")
+
     def search_event(self, event=None):
         address = self.entry.get().strip()
         self.entry.delete(0, "end")
@@ -196,55 +288,28 @@ class App(customtkinter.CTk):
             print("Please enter an address to search")
 
     def find_busy_place(self):
-        locations = self.controller.getLocations(self.current_location_coords)
-        clusters = self.process_logic.cluster_maker(locations)
-        busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
-        if busy_address:
-            self.map_widget.delete_all_marker()
-            if self.current_location_coords:
-                self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
-            self.map_widget.delete_all_path()
-
-            lat, lon = busy_address
-            busy_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
-            self.map_widget.set_zoom(15)
+        # Prevent multiple simultaneous executions
+        if self.is_processing:
+            return
             
-            # Get actual driving route instead of straight line
-            if self.current_location_coords:
-                route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
-                self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
-                busy_path = self.map_widget.set_path(route_waypoints)
-                print(f"Generated driving route with {len(route_waypoints)} waypoints")
-
-        else:
-            print("Please enter an address to search")
+        # Set loading state immediately
+        self._set_buttons_loading_state(True)
+        
+        # Start processing in background thread
+        thread = threading.Thread(target=self._find_busy_place_threaded, daemon=True)
+        thread.start()
 
     def find_idle_place(self):
-        idle_address = self.controller.get_idle_address(None)
-        if idle_address:
-            coordinates = self.process_logic.geocode_address(idle_address)
-            if coordinates:
-                self.map_widget.delete_all_marker()
-                if self.current_location_coords:
-                    self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
-                self.map_widget.delete_all_path()
-                
-                lat, lon = coordinates
-                idle_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
-                self.map_widget.set_zoom(15)
-                
-                # Get actual driving route instead of straight line
-                if self.current_location_coords:
-                    route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
-                    self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
-                    idle_path = self.map_widget.set_path(route_waypoints)
-                    print(f"Generated driving route with {len(route_waypoints)} waypoints")
-                
-                print(f"Found address '{idle_address}' at coordinates: {lat}, {lon}")
-            else:
-                print(f"Could not find coordinates for address: {idle_address}")
-        else:
-            print("Please enter an address to search")
+        # Prevent multiple simultaneous executions
+        if self.is_processing:
+            return
+            
+        # Set loading state immediately
+        self._set_buttons_loading_state(True)
+        
+        # Start processing in background thread
+        thread = threading.Thread(target=self._find_idle_place_threaded, daemon=True)
+        thread.start()
 
     def add_route_event(self, coords):
         print("Add marker:", coords)

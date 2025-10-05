@@ -8,7 +8,7 @@
 **Clustering:**
  * The application uses heuristics to scour through lists of data, collect locations and group them together.
  * The resulted clusters are merged if close enough to form the final bundle of clusters.
- * These clusters are visualised and shown together with a busyness score and distance to predict ideal hotspots.
+ * These clusters are visualised and shown together with a busyness score and distance to predict fitting hotspots.
  * We provide the clusters and the user can pick from one of these clusters and the application predicts the ideal location for the drivers go to.
  * The application automatically creates a route from the location to the ideal spot within the chosen cluster.
 

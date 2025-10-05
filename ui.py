@@ -9,6 +9,58 @@ from process_logic import ProcessLogic
 
 customtkinter.set_default_color_theme("blue")
 
+def calculate_cluster_radius(cluster_locations, center_coords, total_locations):
+    """
+    Calculate an appropriate radius for a cluster based on its spread.
+    
+    Args:
+        cluster_locations (list): List of (lat, lon) tuples in the cluster
+        center_coords (tuple): Center coordinates as (latitude, longitude)
+    
+    Returns:
+        float: Radius in kilometers
+    """
+    if len(cluster_locations) <= 1:
+        return 0.5  # Minimum radius for single points
+    
+    radius = 0.3 + (1.7 - 0.3) * math.log(len(cluster_locations)) / math.log(total_locations)
+    return radius
+
+def create_circular_polygon(center_coords, radius_km=0.5, num_points=20):
+    """
+    Create a circular polygon around a center point for map visualization.
+    
+    Args:
+        center_coords (tuple): Center coordinates as (latitude, longitude)
+        radius_km (float): Radius of the circle in kilometers (default: 0.5 km)
+        num_points (int): Number of points to approximate the circle (default: 20)
+    
+    Returns:
+        list: List of (lat, lon) tuples forming a circular polygon
+    """
+    lat, lon = center_coords
+    
+    # Convert radius from km to degrees (approximate)
+    # 1 degree of latitude ≈ 111 km
+    # 1 degree of longitude ≈ 111 km * cos(latitude)
+    radius_lat = radius_km / 111.0
+    radius_lon = radius_km / (111.0 * math.cos(math.radians(lat)))
+    
+    points = []
+    for i in range(num_points):
+        angle = 2 * math.pi * i / num_points
+        # Calculate offset from center
+        delta_lat = radius_lat * math.cos(angle)
+        delta_lon = radius_lon * math.sin(angle)
+        
+        # Add to center coordinates
+        point_lat = lat + delta_lat
+        point_lon = lon + delta_lon
+        
+        points.append((point_lat, point_lon))
+    
+    return points
+
 def get_driving_route(start_coords, end_coords):
     """
     Get driving route waypoints between two coordinates using OpenRouteService.
@@ -240,6 +292,11 @@ class App(customtkinter.CTk):
         self.status_label = customtkinter.CTkLabel(self.frame_left, text="Status:\nReady", font=("Inter", 12), anchor="w", text_color="MistyRose3")
         self.status_label.grid(row=3, column=0, padx=(20, 20), pady=(10, 0))
 
+        # Help button in top-right corner
+        self.help_button = customtkinter.CTkButton(master=self, text="?", font=("Inter", 16, "bold"), 
+                                                 width=30, height=30, command=self.show_help)
+        self.help_button.grid(row=0, column=1, padx=20, pady=10, sticky="ne")
+
 
         # ============ frame_right ============
 
@@ -294,10 +351,106 @@ class App(customtkinter.CTk):
             self.button_1.configure(state="normal", text="Find Busy Place")
             self.button_2.configure(state="normal", text="Find Idle Place")
 
+    def click_busy_area(self, polygon):
+        if not polygon.position_list:
+            self.map_widget.delete_all_polygon()
+            self.update_status("Failed to route to area.")
+            return
+
+        busy_address = self.process_logic.cluster_average(polygon.position_list)
+
+        self.map_widget.delete_all_polygon()
+        self._update_map_for_busy_place(busy_address)
+
+    def click_idle_area(self, polygon):
+        if not polygon.position_list:
+            self.map_widget.delete_all_polygon()
+            self.update_status("Failed to route to area.")
+            return
+
+        busy_address = self.process_logic.cluster_average(polygon.position_list)
+        idle_address = self.controller.get_idling_place(busy_address)
+
+        self.map_widget.delete_all_polygon()
+        self._update_map_for_idle_place(idle_address)
+
     def update_status(self, message):
         """Update the status label with a new message"""
         self.status_label.configure(text=f"Status:\n{message}")
         self.update()  # Force immediate UI update
+
+    def show_help(self):
+        """Show help window with app instructions"""
+        help_window = customtkinter.CTkToplevel(self)
+        help_window.title("Help - Uber Driver Assistant")
+        help_window.geometry("500x600")
+        help_window.resizable(False, False)
+        
+        # Center the help window
+        help_window.transient(self)
+        help_window.grab_set()
+        
+        # Help content
+        help_text = """
+Uber Driver Assistant - Help
+
+OVERVIEW:
+This app helps Uber Earners find the best locations to pick up passengers by analyzing busy and idle areas.
+
+HOW TO USE:
+
+1. SEARCH FOR LOCATION:
+   • Type an address in the search box
+   • Press Enter or click Search
+   • The map will center on your location
+
+2. FIND BUSY PLACES:
+   • Click the "Find Busy Place" button
+   • The app will show clusters of high-demand areas
+   • Click on any cluster to get directions there
+   • Green circles show busy areas with passenger counts
+
+3. FIND IDLE PLACES:
+   • Click the "Find Idle Place" button  
+   • The app will show clusters of high-demand areas
+   • Click on any cluster to get directions to a parking lot nearest to the busy area
+   • Perfect place to wait or rest in between rides
+   • Click on any cluster to get directions there
+
+4. INTERACTIVE MAP:
+   • Right-click anywhere on map to select starting location
+   • Zoom in/out with mouse wheel
+   • Drag to pan around the map
+
+5. STATUS INDICATORS:
+   • Status shows what the program is currently doing
+   • "Location too remote" means no data available for that location
+   • Route info shows distance and travel time
+
+TIPS:
+• Search for major cities for best results
+• Distance and busyness info shown on markers
+• Use appearance mode to switch themes
+
+TROUBLESHOOTING:
+• If no results found, try a different location
+• Ensure you have internet connection
+• Remote areas may not have enough data. 
+  Getting closer to a major city is recommended
+        """
+        
+        # Create scrollable text widget
+        text_frame = customtkinter.CTkFrame(help_window)
+        text_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        text_widget = customtkinter.CTkTextbox(text_frame, font=("Inter", 12))
+        text_widget.pack(fill="both", expand=True, padx=10, pady=10)
+        text_widget.insert("1.0", help_text)
+        text_widget.configure(state="disabled")
+        
+        # Close button
+        close_button = customtkinter.CTkButton(help_window, text="Close", command=help_window.destroy)
+        close_button.pack(pady=10)
 
     def _find_busy_place_threaded(self):
         """
@@ -343,14 +496,32 @@ class App(customtkinter.CTk):
             self.after(0, self.update_status, "Analyzing locations...")
             
             clusters = self.process_logic.cluster_maker(locations)
-            self.after(0, self.update_status, "Calculating busy areas...")
-            
-            busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
 
-            if busy_address:
+            total_locations = len(locations)
+            self.map_widget.delete_all_marker()
+            self.map_widget.delete_all_path()
+            self.map_widget.delete_all_polygon()
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+            for cluster in clusters:
+                # cluster[0] = list of locations, cluster[1] = center coordinates
+                cluster_locations = cluster[0]
+                cluster_center = cluster[1]
+                
+                # Calculate appropriate radius based on cluster spread
+                radius = calculate_cluster_radius(cluster_locations, cluster_center, total_locations)
+                
+                # Create a name
+                name = f"Busyness: {len(cluster_locations)}\nDistance: {round(self.process_logic.distance_finder(self.current_location_coords, cluster_center), 1)} km"
+
+                # Create circular polygon around the center
+                circle_points = create_circular_polygon(cluster_center, radius_km=radius)
+                self.map_widget.set_polygon(circle_points, command=self.click_busy_area, fill_color="aquamarine2", outline_color="firebrick2")
+                self.map_widget.set_marker(cluster_center[0], cluster_center[1], text=name, font=("Inter", 18), marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
+
+            self.after(0, self.update_status, "Calculating busy areas...")
+
+            if clusters:
                 self.after(0, self.update_status, "Route calculated")
-                # Update UI in main thread
-                self.after(0, self._update_map_for_busy_place, busy_address)
             else:
                 self.after(0, self.update_status, "Busy location too remote")
                 print("No busy places found - location too remote")
@@ -406,11 +577,30 @@ class App(customtkinter.CTk):
             
             clusters = self.process_logic.cluster_maker(locations)
             self.after(0, self.update_status, "Calculating idle areas...")
+
+            total_locations = len(locations)
+            self.map_widget.delete_all_marker()
+            self.map_widget.delete_all_path()
+            self.map_widget.delete_all_polygon()
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+            for cluster in clusters:
+                # cluster[0] = list of locations, cluster[1] = center coordinates
+                cluster_locations = cluster[0]
+                cluster_center = cluster[1]
+                
+                # Calculate appropriate radius based on cluster spread
+                radius = calculate_cluster_radius(cluster_locations, cluster_center, total_locations)
+                
+                # Create a name
+                name = f"Busyness: {len(cluster_locations)}\nDistance: {round(self.process_logic.distance_finder(self.current_location_coords, cluster_center), 1)} km"
+
+                # Create circular polygon around the center
+                circle_points = create_circular_polygon(cluster_center, radius_km=radius)
+                self.map_widget.set_polygon(circle_points, command=self.click_idle_area, fill_color="aquamarine2", outline_color="firebrick2")
+                self.map_widget.set_marker(cluster_center[0], cluster_center[1], text=name, font=("Inter", 18), marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
             
-            idle_address = self.controller.get_idle_address(clusters, self.current_location_coords)
-            if idle_address:
+            if clusters:
                 self.after(0, self.update_status, "Route calculated")
-                self.after(0, self._update_map_for_idle_place, idle_address)
             else:
                 self.after(0, self.update_status, "Idle location too remote")
                 print("No idle places found - location too remote")
@@ -706,6 +896,7 @@ class App(customtkinter.CTk):
             if coordinates:
                 self.map_widget.delete_all_marker()
                 self.map_widget.delete_all_path()
+                self.map_widget.delete_all_polygon()
                 self.current_route_label.configure(text="")
                 lat, lon = coordinates
                 self.current_location_coords = (lat, lon)

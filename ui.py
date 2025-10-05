@@ -24,7 +24,6 @@ def calculate_cluster_radius(cluster_locations, center_coords, total_locations):
         return 0.5  # Minimum radius for single points
     
     radius = 0.3 + (1.7 - 0.3) * math.log(len(cluster_locations)) / math.log(total_locations)
-    print(radius)
     return radius
 
 def create_circular_polygon(center_coords, radius_km=0.5, num_points=20):
@@ -348,15 +347,15 @@ class App(customtkinter.CTk):
             self.button_2.configure(state="normal", text="Find Idle Place")
 
     def click_busy_area(self, polygon):
+        if not polygon.position_list:
+            self.map_widget.delete_all_polygon()
+            # TODO: parse error
+            return
+
+        busy_address = self.process_logic.cluster_average(polygon.position_list)
+
         self.map_widget.delete_all_polygon()
-        print(polygon)
-
-        # busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
-
-        # if busy_address:
-        #         self._update_map_for_busy_place(busy_address)
-        #     else:
-        #         print("Please enter an address to search")
+        self._update_map_for_busy_place(busy_address)
 
     def update_status(self, message):
         """Update the status label with a new message"""

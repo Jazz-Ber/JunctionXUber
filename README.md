@@ -21,4 +21,4 @@
   6) Copy it into the config.json file
 
 **AI Usage:**
- * The design was assited by using the Cursor Code Editor
+ * The design was assisted by using the Cursor Code Editor

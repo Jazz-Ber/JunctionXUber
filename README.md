@@ -14,10 +14,12 @@
  * The user can find parking spots near busy areas to optimise their downtime.
 
 **Limitations:**
-  * All data is received and displayed using free APIs and libraries and may not be perfect or limited in some countries.
-  * The map view may need a bit to load sometimes, if there is a slow internet connection.
+
+- All data is received and displayed using free APIs and libraries and may not be perfect or limited in some countries.
+- The map view may need a bit to load sometimes, if there is a slow internet connection.
 
 **How to Run:**
+  * Python needs to be installed to run this program
   1) Insert your API key in configs/config.json in place of "INSERT HERE"
   2) Run main.py to open the application
 

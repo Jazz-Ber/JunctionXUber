@@ -9,7 +9,7 @@
   * The map view may need a bit to load sometimes, if there is a slow internet connection.
 
 **How to Run:**
-  1) Insert your API key in configs/conifg.json in place of "INSERT HERE"
+  1) Insert your API key in configs/config.json in place of "INSERT HERE"
   2) Run main.py to open the application
 
 **How to get API Key:**

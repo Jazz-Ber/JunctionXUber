@@ -238,6 +238,10 @@ class App(customtkinter.CTk):
     def click_busy_area(self, polygon):
         if not polygon or not polygon.position_list:
             self.map_widget.delete_all_polygon()
+            self.map_widget.delete_all_marker()
+            if self.current_location_coords:
+                self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+            self.map_widget.delete_all_path()
             self.update_status("Failed to route to area.")
             return
 
@@ -249,6 +253,10 @@ class App(customtkinter.CTk):
     def click_idle_area(self, polygon):
         if not polygon or not polygon.position_list:
             self.map_widget.delete_all_polygon()
+            self.map_widget.delete_all_marker()
+            if self.current_location_coords:
+                self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+            self.map_widget.delete_all_path()
             self.update_status("Failed to route to area.")
             return
 
@@ -424,14 +432,14 @@ TROUBLESHOOTING:
         """
         Update the map with the new busy adress and the route between current location and the new busy address
         """
-        if not idle_address:
-            self.update_status("Error finding place, please try again.")
-            return
-
         self.map_widget.delete_all_marker()
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
+
+        if not busy_address:
+            self.update_status("Error finding place, please try again.")
+            return
 
         lat, lon = busy_address
         busy_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
@@ -448,14 +456,14 @@ TROUBLESHOOTING:
         """
         Update the map with the new idle address and the route between current location and the new idle address
         """
-        if not idle_address:
-            self.update_status("Error finding place, please try again.")
-            return
-
         self.map_widget.delete_all_marker()
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
+
+        if not idle_address:
+            self.update_status("Error finding place, please try again.")
+            return
         
         lat, lon = idle_address
         idle_area_marker = self.map_widget.set_position(lat, lon, marker=True, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
@@ -560,15 +568,16 @@ TROUBLESHOOTING:
         """
         Adds a route to the UI when finding a new idle or busy location
         """
-        if not coords:
-            self.update_status("Unexpected error, please try again.")
-            return
 
         print("Add marker:", coords)
         self.map_widget.delete_all_marker()
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
+
+        if not coords:
+            self.update_status("Unexpected error, please try again.")
+            return
 
         lat, lon = coords
         new_area_marker = self.map_widget.set_marker(lat, lon, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")

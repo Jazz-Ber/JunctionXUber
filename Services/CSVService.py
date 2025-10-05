@@ -1,6 +1,11 @@
 import csv
 
-def Id_To_Name(search_term=""):
+"This class is mostly used for debugging with printing"
+
+def id_to_name(search_term=""):
+    """
+    Finds the name of a category by searching by its ID
+    """
     csv_file_path = "Data/personalization-apis-movement-sdk-categories.csv"
 
     with open(csv_file_path, 'r', encoding='utf-8') as file:
@@ -10,7 +15,10 @@ def Id_To_Name(search_term=""):
                 return row['Category Name']
     return None
 
-def Name_To_Id(search_term=""):
+def name_to_id(search_term=""):
+    """
+    Finds an ID of a category by searching by its name
+    """
     csv_file_path = "Data/personalization-apis-movement-sdk-categories.csv"
     
     with open(csv_file_path, 'r', encoding='utf-8') as file:

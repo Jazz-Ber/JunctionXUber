@@ -1,8 +1,6 @@
-# self.py
 import geopy.distance
 import math
 from TypeChooser import get_venue_type
-from Services.CSVService import Id_To_Name
 
 class Controller:
     def __init__(self, client):
@@ -13,23 +11,7 @@ class Controller:
 
     def getLocations(self, current_coords):
         """
-        Retrieve nearby locations based on the current coordinates and currently open venue types.
-
-        This method determines which venue categories are open at the current time using the
-        `get_venue_type()` function, then queries the Foursquare API for locations of those types
-        within a 10 km radius of the provided coordinates.
-
-        Args:
-            current_coords (tuple): A tuple of (latitude, longitude) representing the current location.
-
-        Returns:
-            list: A list of (latitude, longitude) tuples for each location found by the API.
-
-        Notes:
-            - The method uses the FoursquareClient instance (`self.client`) to make the API request.
-            - Only locations with valid latitude and longitude are included in the result.
-            - The search is limited to 50 results and a 10,000 meter radius.
-            - Venue types are determined dynamically based on current time and day.
+        Gets all the close locations to go to at the given time
         """
         types = ""
         venue_types = get_venue_type()
@@ -61,15 +43,16 @@ class Controller:
 
         return result_coords
 
-    # Methods to update addresses
     def set_busy_address(self, addr):
         self.busy_address = addr
 
     def set_idle_address(self, addr):
         self.idle_address = addr
 
-    # Methods to get addresses
     def get_busy_address(self, clusters, current_coords):
+        """
+        Finds the optimal spot for new requests
+        """
         if not clusters:
             return self.busy_address
         
@@ -81,6 +64,9 @@ class Controller:
 
 
     def get_idle_address(self, clusters, current_coords):
+        """
+        Finds a parking lot in the neighbourhood for some down time
+        """
         if not clusters:
             return self.idle_address
         

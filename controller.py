@@ -78,18 +78,9 @@ class Controller:
         return clusters[scores.index(max(scores))][1]
 
 
-    def get_idle_address(self, clusters, current_coords):
-        if not clusters:
-            return None
-        
-        scores = []
-        for i in clusters:
-            scores.append((len(i[0]) / math.sqrt(round(geopy.distance.geodesic(current_coords, i[1]).km, 3))))
-
-        busy_location =  clusters[scores.index(max(scores))][1]
-
+    def get_idling_place(self, area_coords):
         p = {
-            "ll": f"{busy_location[0]},{busy_location[1]}",
+            "ll": f"{area_coords[0]},{area_coords[1]}",
             "radius": 1000,
             "limit": 10,
             "open_now": True,
@@ -115,3 +106,15 @@ class Controller:
             return None
 
         return result_coords[0]
+
+    def get_idle_address(self, clusters, current_coords):
+        if not clusters:
+            return None
+        
+        scores = []
+        for i in clusters:
+            scores.append((len(i[0]) / math.sqrt(round(geopy.distance.geodesic(current_coords, i[1]).km, 3))))
+
+        busy_location =  clusters[scores.index(max(scores))][1]
+
+        return self.get_idling_place(busy_location)

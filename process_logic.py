@@ -131,7 +131,7 @@ class ProcessLogic:
         # Convert to coordinate-based clustering
         untouched_coords = places.copy()
         clusters = []
-        cluster_difference = 1
+        cluster_difference = 1.5
 
         # Initial clustering based on coordinates
         while len(untouched_coords) != 0:

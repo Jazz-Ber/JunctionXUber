@@ -280,7 +280,7 @@ class App(customtkinter.CTk):
                                                 command=self.find_idle_place)
         self.button_2.grid(pady=(100, 0), padx=(20, 20), row=0, column=0)
 
-        self.current_route_label = customtkinter.CTkLabel(self.frame_left, text="", font=("Inter", 18), anchor="w")
+        self.current_route_label = customtkinter.CTkLabel(self.frame_left, text="", font=("Inter", 18), anchor="w", wraplength=150, justify="center")
         self.current_route_label.grid(row=1, column=0, padx=(20, 20), pady=(20, 0))
 
         self.appearance_mode_label = customtkinter.CTkLabel(self.frame_left, text="Appearance Mode:", font=("Inter", 15), anchor="w")
@@ -289,7 +289,7 @@ class App(customtkinter.CTk):
                                                                        command=self.change_appearance_mode)
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=(20, 20), pady=(10, 20))
 
-        self.status_label = customtkinter.CTkLabel(self.frame_left, text="Status:\nReady", font=("Inter", 12), anchor="w", text_color="MistyRose3")
+        self.status_label = customtkinter.CTkLabel(self.frame_left, text="Status:\nReady", font=("Inter", 12), anchor="w", text_color="LemonChiffon3", wraplength=150, justify="center")
         self.status_label.grid(row=3, column=0, padx=(20, 20), pady=(10, 0))
 
         # Help button in top-right corner
@@ -339,6 +339,10 @@ class App(customtkinter.CTk):
         self.map_widget.add_right_click_menu_command(label="Route to here",
                                             command=self.add_route_event,
                                             pass_coords=True)
+        self.map_widget.add_right_click_menu_command(label="Set location here",
+                                            command=self.search_event_with_address,
+                                            pass_coords=True)
+                                            
 
     def _set_buttons_loading_state(self, is_loading=True):
         """Enable or disable both action buttons and show loading state"""
@@ -522,6 +526,7 @@ TROUBLESHOOTING:
 
             if clusters:
                 self.after(0, self.update_status, "Route calculated")
+                self.current_route_label.configure(text="Click an area to route to there")
             else:
                 self.after(0, self.update_status, "Busy location too remote")
                 print("No busy places found - location too remote")
@@ -601,6 +606,7 @@ TROUBLESHOOTING:
             
             if clusters:
                 self.after(0, self.update_status, "Route calculated")
+                self.current_route_label.configure(text="Click an area to route to there")
             else:
                 self.after(0, self.update_status, "Idle location too remote")
                 print("No idle places found - location too remote")
@@ -816,6 +822,9 @@ TROUBLESHOOTING:
             >>> print(coords)
             None
         """
+        if isinstance(address, tuple):
+            return address
+
         url = "https://nominatim.openstreetmap.org/search"
         headers = {
             'User-Agent': 'JunctionXUber/1.0 (Educational Project)'

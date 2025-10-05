@@ -19,3 +19,6 @@
   4) Click "Generate API Key"
   5) Click "Generate Service API Key"
   6) Copy it into the config.json file
+
+**AI Usage:**
+ * The design was assited by using the Cursor Code Editor

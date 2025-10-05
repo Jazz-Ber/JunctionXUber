@@ -357,6 +357,18 @@ class App(customtkinter.CTk):
         self.map_widget.delete_all_polygon()
         self._update_map_for_busy_place(busy_address)
 
+    def click_idle_area(self, polygon):
+        if not polygon.position_list:
+            self.map_widget.delete_all_polygon()
+            self.update_status("Failed to route to area.")
+            return
+
+        busy_address = self.process_logic.cluster_average(polygon.position_list)
+        idle_address = self.controller.get_idling_place(busy_address)
+
+        self.map_widget.delete_all_polygon()
+        self._update_map_for_idle_place(idle_address)
+
     def update_status(self, message):
         """Update the status label with a new message"""
         self.status_label.configure(text=f"Status:\n{message}")
@@ -408,7 +420,10 @@ class App(customtkinter.CTk):
             clusters = self.process_logic.cluster_maker(locations)
 
             total_locations = len(locations)
+            self.map_widget.delete_all_marker()
+            self.map_widget.delete_all_path()
             self.map_widget.delete_all_polygon()
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
             for cluster in clusters:
                 # cluster[0] = list of locations, cluster[1] = center coordinates
                 cluster_locations = cluster[0]
@@ -484,11 +499,30 @@ class App(customtkinter.CTk):
             
             clusters = self.process_logic.cluster_maker(locations)
             self.after(0, self.update_status, "Calculating idle areas...")
+
+            total_locations = len(locations)
+            self.map_widget.delete_all_marker()
+            self.map_widget.delete_all_path()
+            self.map_widget.delete_all_polygon()
+            self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
+            for cluster in clusters:
+                # cluster[0] = list of locations, cluster[1] = center coordinates
+                cluster_locations = cluster[0]
+                cluster_center = cluster[1]
+                
+                # Calculate appropriate radius based on cluster spread
+                radius = calculate_cluster_radius(cluster_locations, cluster_center, total_locations)
+                
+                # Create a name
+                name = f"Busyness: {len(cluster_locations)}\nDistance: {round(self.process_logic.distance_finder(self.current_location_coords, cluster_center), 1)} km"
+
+                # Create circular polygon around the center
+                circle_points = create_circular_polygon(cluster_center, radius_km=radius)
+                self.map_widget.set_polygon(circle_points, command=self.click_idle_area, fill_color="aquamarine2", outline_color="firebrick2")
+                self.map_widget.set_marker(cluster_center[0], cluster_center[1], text=name, font=("Inter", 18), marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
             
-            idle_address = self.controller.get_idle_address(clusters, self.current_location_coords)
-            if idle_address:
+            if clusters:
                 self.after(0, self.update_status, "Route calculated")
-                self.after(0, self._update_map_for_idle_place, idle_address)
             else:
                 self.after(0, self.update_status, "Idle location too remote")
                 print("No idle places found - location too remote")

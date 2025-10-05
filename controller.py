@@ -71,7 +71,7 @@ class Controller:
     # Methods to get addresses
     def get_busy_address(self, clusters, current_coords):
         if not clusters:
-            return self.busy_address
+            return None
         
         scores = []
         for i in clusters:
@@ -82,7 +82,7 @@ class Controller:
 
     def get_idle_address(self, clusters, current_coords):
         if not clusters:
-            return self.idle_address
+            return None
         
         scores = []
         for i in clusters:

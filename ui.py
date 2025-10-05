@@ -237,6 +237,10 @@ class App(customtkinter.CTk):
                                                                        command=self.change_appearance_mode)
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=(20, 20), pady=(10, 20))
 
+        self.status_label = customtkinter.CTkLabel(self.frame_left, text="Status:\nReady", font=("Inter", 12), anchor="w", text_color="MistyRose3")
+        self.status_label.grid(row=3, column=0, padx=(20, 20), pady=(10, 0))
+
+
         # ============ frame_right ============
 
         self.frame_right.grid_rowconfigure(1, weight=1)
@@ -290,6 +294,11 @@ class App(customtkinter.CTk):
             self.button_1.configure(state="normal", text="Find Busy Place")
             self.button_2.configure(state="normal", text="Find Idle Place")
 
+    def update_status(self, message):
+        """Update the status label with a new message"""
+        self.status_label.configure(text=f"Status:\n{message}")
+        self.update()  # Force immediate UI update
+
     def _find_busy_place_threaded(self):
         """
         Threaded version of find_busy_place - runs in background.
@@ -328,17 +337,26 @@ class App(customtkinter.CTk):
             >>> thread.start()
         """
         try:
+            self.after(0, self.update_status, "Finding busy places...")
+            
             locations = self.controller.getLocations(self.current_location_coords)
+            self.after(0, self.update_status, "Analyzing locations...")
+            
             clusters = self.process_logic.cluster_maker(locations)
+            self.after(0, self.update_status, "Calculating busy areas...")
+            
             busy_address = self.controller.get_busy_address(clusters, self.current_location_coords)
 
             if busy_address:
+                self.after(0, self.update_status, "Route calculated")
                 # Update UI in main thread
                 self.after(0, self._update_map_for_busy_place, busy_address)
             else:
-                print("Please enter an address to search")
+                self.after(0, self.update_status, "Busy location too remote")
+                print("No busy places found - location too remote")
                 
         except Exception as e:
+            self.after(0, self.update_status, f"Error: {str(e)}")
             print(f"Error finding busy place: {e}")
         finally:
             # Always restore button state in main thread
@@ -381,15 +399,24 @@ class App(customtkinter.CTk):
             >>> thread.start()
         """
         try:
+            self.after(0, self.update_status, "Finding idle places...")
+            
             locations = self.controller.getLocations(self.current_location_coords)
+            self.after(0, self.update_status, "Analyzing locations...")
+            
             clusters = self.process_logic.cluster_maker(locations)
+            self.after(0, self.update_status, "Calculating idle areas...")
+            
             idle_address = self.controller.get_idle_address(clusters, self.current_location_coords)
             if idle_address:
+                self.after(0, self.update_status, "Route calculated")
                 self.after(0, self._update_map_for_idle_place, idle_address)
             else:
-                print("Please enter an address to search")
+                self.after(0, self.update_status, "Idle location too remote")
+                print("No idle places found - location too remote")
                 
         except Exception as e:
+            self.after(0, self.update_status, f"Error: {str(e)}")
             print(f"Error finding idle place: {e}")
         finally:
             # Always restore button state in main thread
@@ -674,6 +701,7 @@ class App(customtkinter.CTk):
         """
         if address:
             # Use our custom geocoding function
+            self.update_status("Searching for address...")
             coordinates = self.geocode_address(address)
             if coordinates:
                 self.map_widget.delete_all_marker()
@@ -682,10 +710,13 @@ class App(customtkinter.CTk):
                 self.current_location_coords = (lat, lon)
                 self.current_location_marker = self.map_widget.set_position(lat, lon, marker=True)
                 self.map_widget.set_zoom(15)
+                self.update_status("Location found")
                 print(f"Found address '{address}' at coordinates: {lat}, {lon}")
             else:
+                self.update_status("Location too remote - no results found")
                 print(f"Could not find coordinates for address: {address}")
         else:
+            self.update_status("Please enter an address to search")
             print("Please enter an address to search")
 
     def find_busy_place(self):
@@ -694,6 +725,7 @@ class App(customtkinter.CTk):
             return
             
         # Set loading state immediately
+        self.update_status("Starting search...")
         self._set_buttons_loading_state(True)
         
         # Start processing in background thread
@@ -706,6 +738,7 @@ class App(customtkinter.CTk):
             return
             
         # Set loading state immediately
+        self.update_status("Starting search...")
         self._set_buttons_loading_state(True)
         
         # Start processing in background thread

@@ -242,6 +242,7 @@ class App(customtkinter.CTk):
             if self.current_location_coords:
                 self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
             self.map_widget.delete_all_path()
+            self.current_route_label.configure(text="")
             self.update_status("Failed to route to area.")
             return
 
@@ -257,6 +258,7 @@ class App(customtkinter.CTk):
             if self.current_location_coords:
                 self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
             self.map_widget.delete_all_path()
+            self.current_route_label.configure(text="")
             self.update_status("Failed to route to area.")
             return
 
@@ -357,6 +359,7 @@ TROUBLESHOOTING:
             self.map_widget.delete_all_marker()
             self.map_widget.delete_all_path()
             self.map_widget.delete_all_polygon()
+            self.current_route_label.configure(text="")
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
             for cluster in clusters:
                 cluster_locations = cluster[0]
@@ -402,6 +405,7 @@ TROUBLESHOOTING:
             self.map_widget.delete_all_marker()
             self.map_widget.delete_all_path()
             self.map_widget.delete_all_polygon()
+            self.current_route_label.configure(text="")
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
             for cluster in clusters:
                 cluster_locations = cluster[0]
@@ -436,6 +440,8 @@ TROUBLESHOOTING:
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
+        self.map_widget.delete_all_polygon()
+        self.current_route_label.configure(text="")
 
         if not busy_address:
             self.update_status("Error finding place, please try again.")
@@ -460,6 +466,8 @@ TROUBLESHOOTING:
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
+        self.map_widget.delete_all_polygon()
+        self.current_route_label.configure(text="")
 
         if not idle_address:
             self.update_status("Error finding place, please try again.")
@@ -574,6 +582,8 @@ TROUBLESHOOTING:
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
         self.map_widget.delete_all_path()
+        self.map_widget.delete_all_polygon()
+        self.current_route_label.configure(text="")
 
         if not coords:
             self.update_status("Unexpected error, please try again.")

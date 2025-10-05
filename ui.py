@@ -292,6 +292,11 @@ class App(customtkinter.CTk):
         self.status_label = customtkinter.CTkLabel(self.frame_left, text="Status:\nReady", font=("Inter", 12), anchor="w", text_color="LemonChiffon3", wraplength=150, justify="center")
         self.status_label.grid(row=3, column=0, padx=(20, 20), pady=(10, 0))
 
+        # Help button in top-right corner
+        self.help_button = customtkinter.CTkButton(master=self, text="?", font=("Inter", 16, "bold"), 
+                                                 width=30, height=30, command=self.show_help)
+        self.help_button.grid(row=0, column=1, padx=20, pady=10, sticky="ne")
+
 
         # ============ frame_right ============
 
@@ -377,6 +382,79 @@ class App(customtkinter.CTk):
         """Update the status label with a new message"""
         self.status_label.configure(text=f"Status:\n{message}")
         self.update()  # Force immediate UI update
+
+    def show_help(self):
+        """Show help window with app instructions"""
+        help_window = customtkinter.CTkToplevel(self)
+        help_window.title("Help - Uber Driver Assistant")
+        help_window.geometry("500x600")
+        help_window.resizable(False, False)
+        
+        # Center the help window
+        help_window.transient(self)
+        help_window.grab_set()
+        
+        # Help content
+        help_text = """
+Uber Driver Assistant - Help
+
+OVERVIEW:
+This app helps Uber Earners find the best locations to pick up passengers by analyzing busy and idle areas.
+
+HOW TO USE:
+
+1. SEARCH FOR LOCATION:
+   • Type an address in the search box
+   • Press Enter or click Search
+   • The map will center on your location
+
+2. FIND BUSY PLACES:
+   • Click the "Find Busy Place" button
+   • The app will show clusters of high-demand areas
+   • Click on any cluster to get directions there
+   • Green circles show busy areas with passenger counts
+
+3. FIND IDLE PLACES:
+   • Click the "Find Idle Place" button  
+   • The app will show clusters of high-demand areas
+   • Click on any cluster to get directions to a parking lot nearest to the busy area
+   • Perfect place to wait or rest in between rides
+   • Click on any cluster to get directions there
+
+4. INTERACTIVE MAP:
+   • Right-click anywhere on map to select starting location
+   • Zoom in/out with mouse wheel
+   • Drag to pan around the map
+
+5. STATUS INDICATORS:
+   • Status shows what the program is currently doing
+   • "Location too remote" means no data available for that location
+   • Route info shows distance and travel time
+
+TIPS:
+• Search for major cities for best results
+• Distance and busyness info shown on markers
+• Use appearance mode to switch themes
+
+TROUBLESHOOTING:
+• If no results found, try a different location
+• Ensure you have internet connection
+• Remote areas may not have enough data. 
+  Getting closer to a major city is recommended
+        """
+        
+        # Create scrollable text widget
+        text_frame = customtkinter.CTkFrame(help_window)
+        text_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        text_widget = customtkinter.CTkTextbox(text_frame, font=("Inter", 12))
+        text_widget.pack(fill="both", expand=True, padx=10, pady=10)
+        text_widget.insert("1.0", help_text)
+        text_widget.configure(state="disabled")
+        
+        # Close button
+        close_button = customtkinter.CTkButton(help_window, text="Close", command=help_window.destroy)
+        close_button.pack(pady=10)
 
     def _find_busy_place_threaded(self):
         """

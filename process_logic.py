@@ -63,7 +63,7 @@ class ProcessLogic:
         
         untouched_coords = places.copy()
         clusters = []
-        cluster_difference = 1
+        cluster_difference = 1.5
 
         while len(untouched_coords) != 0:
             current_item = untouched_coords.pop()

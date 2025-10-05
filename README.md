@@ -18,4 +18,4 @@
   3) Create a new project
   4) Click "Generate API Key"
   5) Click "Generate Service API Key"
-  6) Copy it into the confi.json file
+  6) Copy it into the config.json file

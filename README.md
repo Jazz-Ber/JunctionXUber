@@ -5,6 +5,13 @@
     * User can insert a custom location to simulate the features in different locations.
     * Venues are based on live time data, to decide if they are open or closed.
 
+**Clustering:**
+    * The application uses heuristics to scour through lists of data, collect locations and group them together.
+    * The resulted clusters are merged if close enough to form the final bundle of clusters.
+    * These clusters are visualised and shown together with a busyness score and distance.
+    * We provide the clusters and the user can pick from one of these clusters and the application predicts the ideal location for the drivers go to.
+    * The application automatically creates a route from the location to the ideal spot within the chosen cluster.
+
 **Limitations:**
   * All data is received and displayed using free APIs and libraries and may not be perfect or limited in some countries.
   * The map view may need a bit to load sometimes, if there is a slow internet connection.

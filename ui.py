@@ -140,7 +140,7 @@ def get_driving_route_with_osrm(start_coords, end_coords):
 
 class App(customtkinter.CTk):
 
-    APP_NAME = "Uber Driver Assitent"
+    APP_NAME = "Uber Driver Assistant"
     WIDTH = 800
     HEIGHT = 500
     current_location_marker = None
@@ -717,7 +717,7 @@ class App(customtkinter.CTk):
                 self.update_status("Location too remote - no results found")
                 print(f"Could not find coordinates for address: {address}")
         else:
-            self.update_status("Please enter an address to search")
+            self.update_status("Please enter an address\nto search")
             print("Please enter an address to search")
 
     def find_busy_place(self):

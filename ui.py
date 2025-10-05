@@ -349,7 +349,7 @@ class App(customtkinter.CTk):
     def click_busy_area(self, polygon):
         if not polygon.position_list:
             self.map_widget.delete_all_polygon()
-            # TODO: parse error
+            self.update_status("Failed to route to area.")
             return
 
         busy_address = self.process_logic.cluster_average(polygon.position_list)

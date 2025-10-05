@@ -434,7 +434,7 @@ TROUBLESHOOTING:
         self.map_widget.set_zoom(15)
         
         if self.current_location_coords:
-            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            route_waypoints, distance, duration = get_driving_route(self.current_location_coords, (lat, lon))
             self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
             busy_path = self.map_widget.set_path(route_waypoints)
             print(f"Generated driving route with {len(route_waypoints)} waypoints")
@@ -454,7 +454,7 @@ TROUBLESHOOTING:
         self.map_widget.set_zoom(15)
         
         if self.current_location_coords:
-            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            route_waypoints, distance, duration = get_driving_route(self.current_location_coords, (lat, lon))
             self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
             idle_path = self.map_widget.set_path(route_waypoints)
             print(f"Generated driving route with {len(route_waypoints)} waypoints")
@@ -562,7 +562,7 @@ TROUBLESHOOTING:
         new_area_marker = self.map_widget.set_marker(lat, lon, marker_color_circle="dodgerblue4", marker_color_outside="steelblue")
 
         if self.current_location_coords:
-            route_waypoints, distance, duration = get_driving_route_with_osrm(self.current_location_coords, (lat, lon))
+            route_waypoints, distance, duration = get_driving_route(self.current_location_coords, (lat, lon))
             self.current_route_label.configure(text=f"Current Route:\n\nDistance: {distance} km\nDuration: {duration} minutes")
             busy_path = self.map_widget.set_path(route_waypoints)
             print(f"Generated driving route with {len(route_waypoints)} waypoints")

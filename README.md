@@ -11,7 +11,7 @@
  * These clusters are visualised and shown together with a busyness score and distance to predict fitting hotspots.
  * We provide the clusters and the user can pick from one of these clusters and the application predicts the ideal location for the drivers go to within the hotspots.
  * The application automatically creates a route from the location to the ideal spot within the chosen cluster.
- * The user can also use this algorithm to find ideal parking spots in the range of the hotspots.
+ * The user can find parking spots near busy areas to optimise their downtime.
 
 **Limitations:**
   * All data is received and displayed using free APIs and libraries and may not be perfect or limited in some countries.

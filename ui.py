@@ -334,6 +334,10 @@ class App(customtkinter.CTk):
         self.map_widget.add_right_click_menu_command(label="Route to here",
                                             command=self.add_route_event,
                                             pass_coords=True)
+        self.map_widget.add_right_click_menu_command(label="Set location here",
+                                            command=self.search_event_with_address,
+                                            pass_coords=True)
+                                            
 
     def _set_buttons_loading_state(self, is_loading=True):
         """Enable or disable both action buttons and show loading state"""
@@ -740,6 +744,9 @@ class App(customtkinter.CTk):
             >>> print(coords)
             None
         """
+        if isinstance(address, tuple):
+            return address
+
         url = "https://nominatim.openstreetmap.org/search"
         headers = {
             'User-Agent': 'JunctionXUber/1.0 (Educational Project)'

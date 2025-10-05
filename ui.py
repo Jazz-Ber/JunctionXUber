@@ -236,7 +236,7 @@ class App(customtkinter.CTk):
             self.button_2.configure(state="normal", text="Find Idle Place")
 
     def click_busy_area(self, polygon):
-        if not polygon.position_list:
+        if not polygon or not polygon.position_list:
             self.map_widget.delete_all_polygon()
             self.update_status("Failed to route to area.")
             return
@@ -247,7 +247,7 @@ class App(customtkinter.CTk):
         self._update_map_for_busy_place(busy_address)
 
     def click_idle_area(self, polygon):
-        if not polygon.position_list:
+        if not polygon or not polygon.position_list:
             self.map_widget.delete_all_polygon()
             self.update_status("Failed to route to area.")
             return
@@ -424,6 +424,10 @@ TROUBLESHOOTING:
         """
         Update the map with the new busy adress and the route between current location and the new busy address
         """
+        if not idle_address:
+            self.update_status("Error finding place, please try again.")
+            return
+
         self.map_widget.delete_all_marker()
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
@@ -444,6 +448,10 @@ TROUBLESHOOTING:
         """
         Update the map with the new idle address and the route between current location and the new idle address
         """
+        if not idle_address:
+            self.update_status("Error finding place, please try again.")
+            return
+
         self.map_widget.delete_all_marker()
         if self.current_location_coords:
             self.map_widget.set_marker(self.current_location_coords[0], self.current_location_coords[1])
@@ -552,6 +560,10 @@ TROUBLESHOOTING:
         """
         Adds a route to the UI when finding a new idle or busy location
         """
+        if not coords:
+            self.update_status("Unexpected error, please try again.")
+            return
+
         print("Add marker:", coords)
         self.map_widget.delete_all_marker()
         if self.current_location_coords:

@@ -3,6 +3,7 @@
     * Find Busy Area: Showcases close by busy clusters for the user to select one to route to.
     * Find Idle Place: Showcases close by busy clusters for the user to select one and routes to a close by parking garage so that after their break the driver is already in a busy area.
     * User can insert a custom location to simulate the features in different locations.
+    * Venues are based on live time data, to decide if they are open or closed.
 
 **Limitations:**
   * All data is received and displayed using free APIs and libraries and may not be perfect or limited in some countries.

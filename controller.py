@@ -36,8 +36,6 @@ class Controller:
         if venue_types and venue_types[0] != "No venues open at this time":
             types = ",".join(venue_types)
 
-        print(types)
-
         params = {
             "ll": f"{current_coords[0]},{current_coords[1]}",
             "radius": 10000,
@@ -89,8 +87,6 @@ class Controller:
             scores.append((len(i[0]) / math.sqrt(round(geopy.distance.geodesic(current_coords, i[1]).km, 3))))
 
         busy_location =  clusters[scores.index(max(scores))][1]
-
-        print(busy_location)
 
         p = {
             "ll": f"{busy_location[0]},{busy_location[1]}",
